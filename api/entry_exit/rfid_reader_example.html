@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Reader Integration Example</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: #f8f9fa;
+        }
+        .card {
+            border: none;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .status-light {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .status-ready { background-color: #28a745; }
+        .status-processing { background-color: #ffc107; }
+        .status-error { background-color: #dc3545; }
+        .status-success { background-color: #17a2b8; }
+        .card-display {
+            background: #343a40;
+            color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.2rem;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .log-entry {
+            background: #fff;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+        .gate-selector {
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4">
+        <div class="row">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white">
+                        <h4><i class="fas fa-credit-card"></i> RFID Reader Integration</h4>
+                    </div>
+                    <div class="card-body">
+                        <!-- Gate Configuration -->
+                        <div class="gate-selector">
+                            <h5>Gate Configuration</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="gateNumber" class="form-label">Gate Number</label>
+                                    <select id="gateNumber" class="form-select">
+                                        <option value="1">Gate 1 - Main Entrance</option>
+                                        <option value="2">Gate 2 - Library Side</option>
+                                        <option value="3">Gate 3 - Parking Area</option>
+                                        <option value="4">Gate 4 - Sports Complex</option>
+                                        <option value="5">Gate 5 - Student Center</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="apiKey" class="form-label">API Key</label>
+                                    <input type="text" id="apiKey" class="form-control" 
+                                           value="gate_system_2024" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Display -->
+                        <div class="d-flex align-items-center mb-3">
+                            <span class="status-light status-ready" id="statusLight"></span>
+                            <span id="statusText">Ready to scan cards</span>
+                        </div>
+
+                        <!-- Card Display -->
+                        <div class="card-display" id="cardDisplay">
+                            <div>Waiting for card...</div>
+                            <small>Place card near reader</small>
+                        </div>
+
+                        <!-- Manual Input (for testing) -->
+                        <div class="mb-3">
+                            <label for="manualCard" class="form-label">Manual Card Input (Testing)</label>
+                            <div class="input-group">
+                                <input type="text" id="manualCard" class="form-control" 
+                                       placeholder="Enter card number for testing">
+                                <button class="btn btn-outline-secondary" onclick="processManualCard()">
+                                    Process
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Recent Activity -->
+                        <div class="mt-4">
+                            <h5><i class="fas fa-history"></i> Recent Activity</h5>
+                            <div id="activityLog" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-muted text-center">No activity yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h5><i class="fas fa-chart-bar"></i> Real-time Stats</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row text-center">
+                            <div class="col-6">
+                                <h3 id="totalInside">0</h3>
+                                <small class="text-muted">Inside Campus</small>
+                            </div>
+                            <div class="col-6">
+                                <h3 id="todayEntries">0</h3>
+                                <small class="text-muted">Today's Entries</small>
+                            </div>
+                        </div>
+                        <hr>
+                        <div>
+                            <h6>Gate Activity</h6>
+                            <div id="gateStats">
+                                <div class="text-muted text-center">Loading...</div>
+                            </div>
+                        </div>
+                        <hr>
+                        <button class="btn btn-outline-primary btn-sm w-100" onclick="refreshStats()">
+                            <i class="fas fa-sync-alt"></i> Refresh Stats
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card mt-3">
+                    <div class="card-header bg-warning text-dark">
+                        <h5><i class="fas fa-cog"></i> Reader Settings</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="autoProcess" checked>
+                            <label class="form-check-label" for="autoProcess">
+                                Auto-process cards
+                            </label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="playSound" checked>
+                            <label class="form-check-label" for="playSound">
+                                Play sound on scan
+                            </label>
+                        </div>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="showNotifications" checked>
+                            <label class="form-check-label" for="showNotifications">
+                                Show notifications
+                            </label>
+                        </div>
+                        <hr>
+                        <button class="btn btn-outline-secondary btn-sm w-100" onclick="testReader()">
+                            <i class="fas fa-play"></i> Test Reader
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let isProcessing = false;
+        let activityLog = [];
+        let stats = {
+            totalInside: 0,
+            todayEntries: 0,
+            gateStats: []
+        };
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshStats();
+            setupCardReader();
+        });
+
+        // Simulate RFID card reader
+        function setupCardReader() {
+            // In a real implementation, this would connect to the actual RFID reader
+            // For demo purposes, we'll simulate card reading
+            
+            // Listen for keyboard input (simulating card reader)
+            document.addEventListener('keydown', function(e) {
+                if (e.target.tagName === 'INPUT') return; // Don't interfere with manual input
+                
+                // Simulate card number input
+                if (e.key === 'Enter') {
+                    const cardNumber = generateTestCardNumber();
+                    processCard(cardNumber);
+                }
+            });
+
+            // Auto-refresh stats every 30 seconds
+            setInterval(refreshStats, 30000);
+        }
+
+        function generateTestCardNumber() {
+            // Generate a test card number
+            const prefixes = ['RFID2023', 'RFID2024', 'CARD'];
+            const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+            const number = Math.floor(Math.random() * 999).toString().padStart(3, '0');
+            return prefix + number;
+        }
+
+        async function processCard(cardNumber) {
+            if (isProcessing) return;
+            
+            isProcessing = true;
+            updateStatus('processing', 'Processing card...');
+            updateCardDisplay(cardNumber, 'Processing...');
+
+            try {
+                const response = await fetch('process.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': document.getElementById('apiKey').value
+                    },
+                    body: JSON.stringify({
+                        card_number: cardNumber,
+                        gate_number: document.getElementById('gateNumber').value
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 200) {
+                    updateStatus('success', `${result.data.action} successful`);
+                    updateCardDisplay(cardNumber, `${result.data.action.toUpperCase()}`);
+                    addToActivityLog('Card processed successfully', result.data);
+                    
+                    if (document.getElementById('playSound').checked) {
+                        playSound(result.data.action === 'entry' ? 'success' : 'info');
+                    }
+                    
+                    if (document.getElementById('showNotifications').checked) {
+                        showNotification(result.data);
+                    }
+                    
+                    // Refresh stats after successful processing
+                    setTimeout(refreshStats, 1000);
+                } else {
+                    updateStatus('error', result.message);
+                    updateCardDisplay(cardNumber, 'ERROR');
+                    addToActivityLog('Card processing failed', result);
+                    playSound('error');
+                }
+            } catch (error) {
+                updateStatus('error', 'Network error');
+                updateCardDisplay(cardNumber, 'ERROR');
+                addToActivityLog('Network error', { error: error.message });
+                playSound('error');
+            }
+
+            // Reset after 3 seconds
+            setTimeout(() => {
+                isProcessing = false;
+                updateStatus('ready', 'Ready to scan cards');
+                updateCardDisplay('', 'Waiting for card...');
+            }, 3000);
+        }
+
+        function processManualCard() {
+            const cardNumber = document.getElementById('manualCard').value.trim();
+            if (cardNumber) {
+                processCard(cardNumber);
+                document.getElementById('manualCard').value = '';
+            }
+        }
+
+        function updateStatus(type, message) {
+            const statusLight = document.getElementById('statusLight');
+            const statusText = document.getElementById('statusText');
+            
+            statusLight.className = `status-light status-${type}`;
+            statusText.textContent = message;
+        }
+
+        function updateCardDisplay(cardNumber, status) {
+            const display = document.getElementById('cardDisplay');
+            if (cardNumber) {
+                display.innerHTML = `
+                    <div><strong>${cardNumber}</strong></div>
+                    <div>${status}</div>
+                `;
+            } else {
+                display.innerHTML = `
+                    <div>Waiting for card...</div>
+                    <small>Place card near reader</small>
+                `;
+            }
+        }
+
+        function addToActivityLog(message, data) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = {
+                timestamp,
+                message,
+                data
+            };
+            
+            activityLog.unshift(logEntry);
+            if (activityLog.length > 20) {
+                activityLog.pop();
+            }
+            
+            updateActivityLogDisplay();
+        }
+
+        function updateActivityLogDisplay() {
+            const logDiv = document.getElementById('activityLog');
+            
+            if (activityLog.length === 0) {
+                logDiv.innerHTML = '<div class="text-muted text-center">No activity yet</div>';
+                return;
+            }
+            
+            logDiv.innerHTML = activityLog.map(entry => `
+                <div class="log-entry">
+                    <small class="text-muted">${entry.timestamp}</small>
+                    <div><strong>${entry.message}</strong></div>
+                    ${entry.data ? `<small class="text-muted">${JSON.stringify(entry.data).substring(0, 50)}...</small>` : ''}
+                </div>
+            `).join('');
+        }
+
+        async function refreshStats() {
+            try {
+                const response = await fetch('status.php', {
+                    headers: {
+                        'X-API-Key': document.getElementById('apiKey').value
+                    }
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 200) {
+                    stats = result.data;
+                    document.getElementById('totalInside').textContent = stats.total_inside;
+                    document.getElementById('todayEntries').textContent = stats.recent_entries.length;
+                    
+                    // Update gate stats
+                    const gateStatsDiv = document.getElementById('gateStats');
+                    gateStatsDiv.innerHTML = stats.gate_statistics.map(gate => `
+                        <div class="d-flex justify-content-between">
+                            <span>Gate ${gate.gate_number}</span>
+                            <span class="badge bg-primary">${gate.inside_count}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('Error refreshing stats:', error);
+            }
+        }
+
+        function playSound(type) {
+            // In a real implementation, you would play actual sound files
+            console.log(`Playing ${type} sound`);
+        }
+
+        function showNotification(data) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                new Notification('RFID Card Processed', {
+                    body: `${data.student.name} - ${data.action}`,
+                    icon: '/favicon.ico'
+                });
+            }
+        }
+
+        function testReader() {
+            const testCard = generateTestCardNumber();
+            updateCardDisplay(testCard, 'Test Mode');
+            setTimeout(() => {
+                processCard(testCard);
+            }, 1000);
+        }
+
+        // Request notification permission
+        if ('Notification' in window) {
+            Notification.requestPermission();
+        }
+    </script>
+</body>
+</html> 

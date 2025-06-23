@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toggle Test</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+</head>
+<body>
+    <header class="header">
+        <button class="sidebar-toggle" aria-label="Toggle Sidebar" title="Toggle Sidebar">
+            <i class="fas fa-bars"></i>
+        </button>
+        <div class="logo">
+            <div>
+                <h1>Gate Management System</h1>
+                <div class="subtitle">UR College of Education, Rukara Campus</div>
+            </div>
+        </div>
+        <nav class="header-nav">
+            <div class="user-info">
+                <div class="user-avatar">U</div>
+                <span>User</span>
+                <a href="#" class="logout-btn">Logout <i class="fas fa-sign-out-alt"></i></a>
+            </div>
+        </nav>
+    </header>
+
+    <aside class="sidebar">
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <h3>Student Portal</h3>
+                <a href="#" class="menu-item"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+                <a href="#" class="menu-item"><i class="fas fa-laptop"></i> My Devices</a>
+                <a href="#" class="menu-item"><i class="fas fa-clipboard-list"></i> My Entry/Exit Logs</a>
+                <a href="#" class="menu-item"><i class="fas fa-user"></i> Profile</a>
+            </div>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        <div class="content-wrapper">
+            <div class="page-header">
+                <div class="page-title">Test Page</div>
+                <div class="page-subtitle">Testing the toggle button functionality</div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title">Toggle Button Test</span>
+                </div>
+                <div class="card-body">
+                    <p>Click the toggle button in the header to hide/show the sidebar.</p>
+                    <p>The button should be on the left side of the header.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // Simple toggle functionality for testing
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebarToggle = document.querySelector('.sidebar-toggle');
+            const sidebar = document.querySelector('.sidebar');
+            const mainContent = document.querySelector('.main-content');
+            
+            console.log('Toggle button found:', sidebarToggle);
+            console.log('Sidebar found:', sidebar);
+            console.log('Main content found:', mainContent);
+            
+            if (sidebarToggle && sidebar && mainContent) {
+                sidebarToggle.addEventListener('click', function() {
+                    console.log('Toggle button clicked!');
+                    
+                    const isCollapsed = sidebar.classList.contains('collapsed');
+                    
+                    if (isCollapsed) {
+                        // Expand sidebar
+                        sidebar.classList.remove('collapsed');
+                        mainContent.classList.remove('expanded');
+                        sidebarToggle.innerHTML = '<i class="fas fa-bars"></i>';
+                        console.log('Sidebar expanded');
+                    } else {
+                        // Collapse sidebar
+                        sidebar.classList.add('collapsed');
+                        mainContent.classList.add('expanded');
+                        sidebarToggle.innerHTML = '<i class="fas fa-chevron-right"></i>';
+                        console.log('Sidebar collapsed');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

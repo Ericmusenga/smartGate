@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RFID Entry/Exit Test Interface</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .status-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .status-success { background-color: #28a745; }
+        .status-error { background-color: #dc3545; }
+        .status-warning { background-color: #ffc107; }
+        .log-entry {
+            background: #f8f9fa;
+            border-left: 4px solid #007bff;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+        }
+        .rfid-input {
+            font-size: 1.2rem;
+            text-align: center;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card">
+                    <div class="card-header bg-primary text-white text-center">
+                        <h3><i class="fas fa-credit-card"></i> RFID Entry/Exit System</h3>
+                        <p class="mb-0">Test Interface</p>
+                    </div>
+                    <div class="card-body">
+                        <!-- RFID Card Input -->
+                        <div class="mb-4">
+                            <label for="cardNumber" class="form-label">RFID Card Number</label>
+                            <input type="text" id="cardNumber" class="form-control rfid-input" 
+                                   placeholder="Scan or enter card number" autofocus>
+                            <div class="form-text">Enter a valid card number (e.g., RFID2023001)</div>
+                        </div>
+
+                        <!-- Gate Selection -->
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <label for="gateNumber" class="form-label">Gate Number</label>
+                                <select id="gateNumber" class="form-select">
+                                    <option value="1">Gate 1 - Main Entrance</option>
+                                    <option value="2">Gate 2 - Library Side</option>
+                                    <option value="3">Gate 3 - Parking Area</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="apiKey" class="form-label">API Key</label>
+                                <input type="text" id="apiKey" class="form-control" 
+                                       value="gate_system_2024" readonly>
+                            </div>
+                        </div>
+
+                        <!-- Action Buttons -->
+                        <div class="d-grid gap-2 mb-4">
+                            <button class="btn btn-primary btn-lg" onclick="processCard()">
+                                <i class="fas fa-play"></i> Process Card
+                            </button>
+                            <button class="btn btn-secondary" onclick="getStudentInfo()">
+                                <i class="fas fa-user"></i> Get Student Info
+                            </button>
+                            <button class="btn btn-info" onclick="getStatus()">
+                                <i class="fas fa-chart-bar"></i> Get Campus Status
+                            </button>
+                        </div>
+
+                        <!-- Results Display -->
+                        <div id="results" class="mb-4" style="display: none;">
+                            <h5>Results:</h5>
+                            <div id="resultContent"></div>
+                        </div>
+
+                        <!-- Recent Activity Log -->
+                        <div class="mt-4">
+                            <h5><i class="fas fa-history"></i> Recent Activity</h5>
+                            <div id="activityLog" style="max-height: 300px; overflow-y: auto;">
+                                <div class="text-muted text-center">No activity yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let activityLog = [];
+
+        // Auto-focus on card input
+        document.getElementById('cardNumber').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                processCard();
+            }
+        });
+
+        async function processCard() {
+            const cardNumber = document.getElementById('cardNumber').value.trim();
+            const gateNumber = document.getElementById('gateNumber').value;
+            const apiKey = document.getElementById('apiKey').value;
+
+            if (!cardNumber) {
+                showResult('Please enter a card number', 'error');
+                return;
+            }
+
+            showResult('Processing card...', 'info');
+
+            try {
+                const response = await fetch('process.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        card_number: cardNumber,
+                        gate_number: gateNumber
+                    })
+                });
+
+                const result = await response.json();
+                
+                if (result.status === 200) {
+                    showResult(result, 'success');
+                    addToActivityLog('Card processed successfully', result.data);
+                    document.getElementById('cardNumber').value = '';
+                    document.getElementById('cardNumber').focus();
+                } else {
+                    showResult(result, 'error');
+                    addToActivityLog('Card processing failed', result);
+                }
+            } catch (error) {
+                showResult('Network error: ' + error.message, 'error');
+                addToActivityLog('Network error', { error: error.message });
+            }
+        }
+
+        async function getStudentInfo() {
+            const cardNumber = document.getElementById('cardNumber').value.trim();
+            const apiKey = document.getElementById('apiKey').value;
+
+            if (!cardNumber) {
+                showResult('Please enter a card number', 'error');
+                return;
+            }
+
+            showResult('Getting student info...', 'info');
+
+            try {
+                const response = await fetch(`student_info.php?card_number=${cardNumber}`, {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                const result = await response.json();
+                showResult(result, result.status === 200 ? 'success' : 'error');
+            } catch (error) {
+                showResult('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function getStatus() {
+            const apiKey = document.getElementById('apiKey').value;
+
+            showResult('Getting campus status...', 'info');
+
+            try {
+                const response = await fetch('status.php', {
+                    headers: {
+                        'X-API-Key': apiKey
+                    }
+                });
+
+                const result = await response.json();
+                showResult(result, result.status === 200 ? 'success' : 'error');
+            } catch (error) {
+                showResult('Network error: ' + error.message, 'error');
+            }
+        }
+
+        function showResult(data, type) {
+            const resultsDiv = document.getElementById('results');
+            const contentDiv = document.getElementById('resultContent');
+            
+            let statusClass = '';
+            let icon = '';
+            
+            switch(type) {
+                case 'success':
+                    statusClass = 'status-success';
+                    icon = 'fas fa-check-circle text-success';
+                    break;
+                case 'error':
+                    statusClass = 'status-error';
+                    icon = 'fas fa-exclamation-circle text-danger';
+                    break;
+                case 'warning':
+                    statusClass = 'status-warning';
+                    icon = 'fas fa-exclamation-triangle text-warning';
+                    break;
+                default:
+                    statusClass = 'status-warning';
+                    icon = 'fas fa-info-circle text-info';
+            }
+
+            if (typeof data === 'string') {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'}">
+                        <i class="${icon}"></i> ${data}
+                    </div>
+                `;
+            } else {
+                contentDiv.innerHTML = `
+                    <div class="alert alert-${type === 'success' ? 'success' : type === 'error' ? 'danger' : 'info'}">
+                        <i class="${icon}"></i> ${data.message}
+                    </div>
+                    <pre class="bg-light p-3 rounded">${JSON.stringify(data.data || data, null, 2)}</pre>
+                `;
+            }
+            
+            resultsDiv.style.display = 'block';
+        }
+
+        function addToActivityLog(message, data) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = {
+                timestamp,
+                message,
+                data
+            };
+            
+            activityLog.unshift(logEntry);
+            if (activityLog.length > 10) {
+                activityLog.pop();
+            }
+            
+            updateActivityLogDisplay();
+        }
+
+        function updateActivityLogDisplay() {
+            const logDiv = document.getElementById('activityLog');
+            
+            if (activityLog.length === 0) {
+                logDiv.innerHTML = '<div class="text-muted text-center">No activity yet</div>';
+                return;
+            }
+            
+            logDiv.innerHTML = activityLog.map(entry => `
+                <div class="log-entry">
+                    <small class="text-muted">${entry.timestamp}</small>
+                    <div><strong>${entry.message}</strong></div>
+                    ${entry.data ? `<small class="text-muted">${JSON.stringify(entry.data).substring(0, 100)}...</small>` : ''}
+                </div>
+            `).join('');
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Logs API</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body { padding: 20px; }
+        .result-box { 
+            background: #f8f9fa; 
+            border: 1px solid #dee2e6; 
+            border-radius: 5px; 
+            padding: 15px; 
+            margin: 10px 0; 
+        }
+        .error { color: #dc3545; }
+        .success { color: #28a745; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Test Logs API</h2>
+        
+        <div class="row">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Test Parameters</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="page" class="form-label">Page</label>
+                            <input type="number" id="page" class="form-control" value="1" min="1">
+                        </div>
+                        <div class="mb-3">
+                            <label for="limit" class="form-label">Limit</label>
+                            <input type="number" id="limit" class="form-control" value="10" min="1" max="100">
+                        </div>
+                        <div class="mb-3">
+                            <label for="gateNumber" class="form-label">Gate Number</label>
+                            <input type="number" id="gateNumber" class="form-control" placeholder="Leave empty for all">
+                        </div>
+                        <div class="mb-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select id="status" class="form-select">
+                                <option value="">All</option>
+                                <option value="entered">Entered</option>
+                                <option value="exited">Exited</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="entryMethod" class="form-label">Entry Method</label>
+                            <select id="entryMethod" class="form-select">
+                                <option value="">All</option>
+                                <option value="rfid">RFID</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="dateFrom" class="form-label">Date From</label>
+                            <input type="date" id="dateFrom" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label for="dateTo" class="form-label">Date To</label>
+                            <input type="date" id="dateTo" class="form-control">
+                        </div>
+                        <button class="btn btn-primary" onclick="testLogs()">Test Logs API</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Results</h5>
+                    </div>
+                    <div class="card-body">
+                        <div id="results">
+                            <p class="text-muted">Click "Test Logs API" to see results</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Quick Tests</h5>
+                    </div>
+                    <div class="card-body">
+                        <button class="btn btn-outline-primary me-2" onclick="quickTest('basic')">Basic Test</button>
+                        <button class="btn btn-outline-success me-2" onclick="quickTest('empty')">Test Empty</button>
+                        <button class="btn btn-outline-warning me-2" onclick="quickTest('error')">Test Error</button>
+                        <button class="btn btn-outline-info" onclick="testAllEndpoints()">Test All Endpoints</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function testLogs() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Loading...</p></div>';
+            
+            // Build query parameters
+            const params = new URLSearchParams();
+            
+            const page = document.getElementById('page').value;
+            const limit = document.getElementById('limit').value;
+            const gateNumber = document.getElementById('gateNumber').value;
+            const status = document.getElementById('status').value;
+            const entryMethod = document.getElementById('entryMethod').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo = document.getElementById('dateTo').value;
+            
+            if (page) params.append('page', page);
+            if (limit) params.append('limit', limit);
+            if (gateNumber) params.append('gate_number', gateNumber);
+            if (status) params.append('status', status);
+            if (entryMethod) params.append('entry_method', entryMethod);
+            if (dateFrom) params.append('date_from', dateFrom);
+            if (dateTo) params.append('date_to', dateTo);
+            
+            try {
+                const response = await fetch(`logs.php?${params.toString()}`, {
+                    headers: {
+                        'X-API-Key': 'gate_system_2024'
+                    }
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 200) {
+                    displaySuccess(result);
+                } else {
+                    displayError(result);
+                }
+            } catch (error) {
+                displayError({ message: 'Network error: ' + error.message });
+            }
+        }
+        
+        function displaySuccess(result) {
+            const resultsDiv = document.getElementById('results');
+            const logs = result.data.logs || [];
+            const pagination = result.data.pagination || {};
+            
+            let html = `
+                <div class="success">
+                    <h6>✓ ${result.message}</h6>
+                    <p><strong>Total Logs:</strong> ${pagination.total_logs || 0}</p>
+                    <p><strong>Page:</strong> ${pagination.current_page || 1} of ${pagination.total_pages || 0}</p>
+                </div>
+            `;
+            
+            if (logs.length === 0) {
+                html += '<div class="alert alert-info">No logs found</div>';
+            } else {
+                html += '<div class="table-responsive"><table class="table table-sm">';
+                html += '<thead><tr><th>Time</th><th>Student</th><th>Action</th><th>Gate</th><th>Method</th></tr></thead><tbody>';
+                
+                logs.forEach(log => {
+                    html += `
+                        <tr>
+                            <td>${new Date(log.created_at).toLocaleString()}</td>
+                            <td>${log.student?.name || 'Unknown'}</td>
+                            <td><span class="badge bg-${log.status === 'entered' ? 'success' : 'warning'}">${log.status}</span></td>
+                            <td>Gate ${log.gate_number}</td>
+                            <td>${log.entry_method}</td>
+                        </tr>
+                    `;
+                });
+                
+                html += '</tbody></table></div>';
+            }
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        function displayError(result) {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = `
+                <div class="error">
+                    <h6>✗ Error</h6>
+                    <p>${result.message || 'Unknown error'}</p>
+                    <pre class="bg-light p-2 rounded">${JSON.stringify(result, null, 2)}</pre>
+                </div>
+            `;
+        }
+        
+        function quickTest(type) {
+            switch(type) {
+                case 'basic':
+                    document.getElementById('page').value = '1';
+                    document.getElementById('limit').value = '5';
+                    document.getElementById('gateNumber').value = '';
+                    document.getElementById('status').value = '';
+                    document.getElementById('entryMethod').value = '';
+                    break;
+                case 'empty':
+                    document.getElementById('page').value = '1';
+                    document.getElementById('limit').value = '1';
+                    document.getElementById('gateNumber').value = '999';
+                    break;
+                case 'error':
+                    // Test with invalid parameters
+                    document.getElementById('page').value = '0';
+                    document.getElementById('limit').value = '1000';
+                    break;
+            }
+            testLogs();
+        }
+        
+        async function testAllEndpoints() {
+            const resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div><p>Testing all endpoints...</p></div>';
+            
+            const endpoints = [
+                { name: 'Test API', url: '../test.php' },
+                { name: 'Student Info', url: 'student_info.php?card_number=RFID2023001' },
+                { name: 'Campus Status', url: 'status.php' },
+                { name: 'Logs', url: 'logs.php?limit=5' }
+            ];
+            
+            let results = [];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(endpoint.url, {
+                        headers: {
+                            'X-API-Key': 'gate_system_2024'
+                        }
+                    });
+                    
+                    const result = await response.json();
+                    results.push({
+                        name: endpoint.name,
+                        status: result.status,
+                        success: result.status === 200
+                    });
+                } catch (error) {
+                    results.push({
+                        name: endpoint.name,
+                        status: 'Error',
+                        success: false,
+                        error: error.message
+                    });
+                }
+            }
+            
+            let html = '<h6>Endpoint Test Results:</h6>';
+            results.forEach(result => {
+                const icon = result.success ? '✓' : '✗';
+                const color = result.success ? 'success' : 'error';
+                html += `<p class="${color}">${icon} ${result.name}: ${result.status}</p>`;
+            });
+            
+            resultsDiv.innerHTML = html;
+        }
+        
+        // Set today's date as default
+        document.getElementById('dateTo').value = new Date().toISOString().split('T')[0];
+    </script>
+</body>
+</html> 
