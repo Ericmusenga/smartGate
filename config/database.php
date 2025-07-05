@@ -44,7 +44,7 @@ class Database {
             $stmt->execute($params);
             return $stmt;
         } catch (PDOException $e) {
-            die("Query failed: " . $e->getMessage());
+            throw new Exception("Query failed: " . $e->getMessage());
         }
     }
 

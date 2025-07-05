@@ -34,6 +34,12 @@ try {
     $error = $e->getMessage();
     $logs = [];
 }
+
+// After fetching $logs
+if (!empty($logs)) {
+    $first_reg_no = $logs[0]['registration_number'];
+    echo "<script>window.open('/Capstone_project/pages/student_info_card.php?reg_no=" . urlencode($first_reg_no) . "', '_blank');</script>";
+}
 ?>
 <!DOCTYPE html>
 <html>

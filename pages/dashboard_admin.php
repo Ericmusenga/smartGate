@@ -16,7 +16,48 @@ if (isset($_SESSION['require_password_change']) && $_SESSION['require_password_c
 }
 
 $error_message = '';
+$success_message = '';
 $dashboard_data = [];
+
+// Handle security officer registration form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'register_security') {
+    $security_code = trim($_POST['security_code'] ?? '');
+    $first_name = trim($_POST['first_name'] ?? '');
+    $last_name = trim($_POST['last_name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+
+    if (!$security_code || !$first_name || !$last_name || !$email) {
+        $error_message = 'Please fill in all required fields.';
+    } else {
+        try {
+            $db = getDB();
+            // Check for duplicate security code or email
+            $exists = $db->fetch("SELECT id FROM security_officers WHERE security_code = ? OR email = ?", [$security_code, $email]);
+            if ($exists) {
+                $error_message = 'A security officer with this code or email already exists.';
+            } else {
+                // Insert into security_officers
+                $db->query("INSERT INTO security_officers (security_code, first_name, last_name, email, phone) VALUES (?, ?, ?, ?, ?)",
+                    [$security_code, $first_name, $last_name, $email, $phone]);
+                
+                // Get the inserted officer's ID
+                $officer_id = $db->lastInsertId();
+                
+                // Create user account for the security officer
+                $role_id = $db->fetch("SELECT id FROM roles WHERE role_name = 'security'")['id'];
+                $default_password = password_hash($security_code, PASSWORD_DEFAULT); // Default password is the security code
+                
+                $db->query("INSERT INTO users (username, password, email, first_name, last_name, role_id, security_officer_id, is_first_login) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    [$security_code, $default_password, $email, $first_name, $last_name, $role_id, $officer_id, TRUE]);
+                
+                $success_message = 'Security officer registered successfully! User account created with default password (security code).';
+            }
+        } catch (Exception $e) {
+            $error_message = 'Error registering security officer: ' . $e->getMessage();
+        }
+    }
+}
 
 try {
     $db = getDB();
@@ -188,6 +229,11 @@ include '../includes/sidebar.php';
                 <i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars($error_message); ?>
             </div>
         <?php endif; ?>
+        <?php if ($success_message): ?>
+            <div class="alert alert-success">
+                <i class="fas fa-check-circle"></i> <?php echo htmlspecialchars($success_message); ?>
+            </div>
+        <?php endif; ?>
         
         <!-- System Statistics Cards -->
         <div class="d-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; margin-bottom: 2rem;">
@@ -237,6 +283,88 @@ include '../includes/sidebar.php';
                     <div>Entry/Exit Records</div>
                     <small class="text-muted">Last hour: <?php echo $dashboard_data['performance']['last_hour_entries']; ?></small>
                 </div>
+            </div>
+        </div>
+        
+        <!-- Security Officer Registration Form -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-user-shield"></i> Register New Security Officer
+                    <button type="button" class="btn btn-sm btn-outline-primary float-end" onclick="toggleSecurityForm()">
+                        <i class="fas fa-plus"></i> Toggle Form
+                    </button>
+                </h5>
+            </div>
+            <div class="card-body" id="securityRegistrationForm" style="display: none;">
+                <form method="POST" action="">
+                    <input type="hidden" name="action" value="register_security">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="security_code" class="form-label">Security Code *</label>
+                                <input type="text" id="security_code" name="security_code" 
+                                       class="form-control" required
+                                       value="<?php echo htmlspecialchars($_POST['security_code'] ?? ''); ?>">
+                                <div class="form-text">Unique identifier for the security officer</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email *</label>
+                                <input type="email" id="email" name="email" 
+                                       class="form-control" required
+                                       value="<?php echo htmlspecialchars($_POST['email'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="first_name" class="form-label">First Name *</label>
+                                <input type="text" id="first_name" name="first_name" 
+                                       class="form-control" required
+                                       value="<?php echo htmlspecialchars($_POST['first_name'] ?? ''); ?>">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="last_name" class="form-label">Last Name *</label>
+                                <input type="text" id="last_name" name="last_name" 
+                                       class="form-control" required
+                                       value="<?php echo htmlspecialchars($_POST['last_name'] ?? ''); ?>">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">Phone</label>
+                                <input type="text" id="phone" name="phone" 
+                                       class="form-control"
+                                       value="<?php echo htmlspecialchars($_POST['phone'] ?? ''); ?>">
+                                <div class="form-text">Optional contact number</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">&nbsp;</label>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="fas fa-save"></i> Register Security Officer
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        <strong>Note:</strong> A user account will be automatically created with the security code as the username and default password.
+                    </div>
+                </form>
             </div>
         </div>
         
@@ -574,6 +702,23 @@ if (deptData.length > 0) {
             }
         }
     });
+}
+
+// Function to toggle security registration form
+function toggleSecurityForm() {
+    const form = document.getElementById('securityRegistrationForm');
+    const button = event.target.closest('button');
+    const icon = button.querySelector('i');
+    
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+        icon.className = 'fas fa-minus';
+        button.innerHTML = '<i class="fas fa-minus"></i> Hide Form';
+    } else {
+        form.style.display = 'none';
+        icon.className = 'fas fa-plus';
+        button.innerHTML = '<i class="fas fa-plus"></i> Toggle Form';
+    }
 }
 </script>
 

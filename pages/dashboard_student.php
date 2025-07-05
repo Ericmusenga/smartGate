@@ -34,6 +34,10 @@ try {
         $card_count = $db->fetch("SELECT COUNT(*) as count FROM rfid_cards WHERE student_id = ? AND is_active = 1", [$user['student_id']]);
         $dashboard_data['card_count'] = $card_count['count'];
         
+        // Get borrowed computers count
+        $borrowed_count = $db->fetch("SELECT COUNT(*) as count FROM devices WHERE user_id = ? AND owner_id != ?", [$user_id, $user_id]);
+        $dashboard_data['borrowed_count'] = $borrowed_count['count'];
+        
         // Get total entry/exit logs
         $logs_count = $db->fetch("SELECT COUNT(*) as count FROM entry_exit_logs WHERE user_id = ?", [$user_id]);
         $dashboard_data['logs_count'] = $logs_count['count'];
@@ -122,6 +126,14 @@ try {
         
     } else {
         $error_message = 'Student information not found.';
+        $dashboard_data = [
+            'device_count' => 0,
+            'card_count' => 0,
+            'borrowed_count' => 0,
+            'logs_count' => 0,
+            'today_logs' => 0,
+            'profile_completion' => 0
+        ];
     }
     
 } catch (Exception $e) {
@@ -129,6 +141,7 @@ try {
     $dashboard_data = [
         'device_count' => 0,
         'card_count' => 0,
+        'borrowed_count' => 0,
         'logs_count' => 0,
         'today_logs' => 0,
         'profile_completion' => 0
@@ -153,6 +166,17 @@ include '../includes/sidebar.php';
         
         <!-- Statistics Cards -->
         <div class="d-grid" style="grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 2rem; margin-bottom: 2rem;">
+            <a href="student_info.php" class="card clickable-card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fas fa-user-circle"></i> My Information</span>
+                </div>
+                <div class="card-body text-center">
+                    <span class="page-title" style="font-size:2rem; color: #007bff;">
+                        <i class="fas fa-user"></i>
+                    </span>
+                    <div>View Complete Profile</div>
+                </div>
+            </a>
             <div class="card">
                 <div class="card-header">
                     <span class="card-title"><i class="fas fa-laptop"></i> My Devices</span>
@@ -160,6 +184,15 @@ include '../includes/sidebar.php';
                 <div class="card-body text-center">
                     <span class="page-title" style="font-size:2rem; color: #007bff;"><?php echo $dashboard_data['device_count']; ?></span>
                     <div>Registered Devices</div>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-header">
+                    <span class="card-title"><i class="fas fa-laptop-house"></i> Borrowed Computers</span>
+                </div>
+                <div class="card-body text-center">
+                    <span class="page-title" style="font-size:2rem; color: #28a745;"><?php echo $dashboard_data['borrowed_count'] ?? 0; ?></span>
+                    <div>Currently Borrowed</div>
                 </div>
             </div>
             <div class="card">
@@ -178,15 +211,6 @@ include '../includes/sidebar.php';
                 <div class="card-body text-center">
                     <span class="page-title" style="font-size:2rem; color: #ffc107;"><?php echo $dashboard_data['logs_count']; ?></span>
                     <div>Entry/Exit Logs</div>
-                </div>
-            </div>
-            <div class="card">
-                <div class="card-header">
-                    <span class="card-title"><i class="fas fa-user"></i> Profile</span>
-                </div>
-                <div class="card-body text-center">
-                    <span class="page-title" style="font-size:2rem; color: #dc3545;"><?php echo $dashboard_data['profile_completion']; ?>%</span>
-                    <div>Profile Complete</div>
                 </div>
             </div>
         </div>
@@ -250,6 +274,15 @@ include '../includes/sidebar.php';
                         <div class="d-grid gap-2">
                             <a href="../device/my_devices.php" class="btn btn-outline-primary">
                                 <i class="fas fa-laptop"></i> View My Devices
+                            </a>
+                            <a href="lend_computer.php" class="btn btn-outline-success">
+                                <i class="fas fa-arrow-circle-right"></i> Borrow Computer
+                            </a>
+                            <a href="return_computer.php" class="btn btn-outline-warning">
+                                <i class="fas fa-arrow-circle-left"></i> Return Computer
+                            </a>
+                            <a href="my_borrowed_computers.php" class="btn btn-outline-info">
+                                <i class="fas fa-laptop-house"></i> My Borrowed Computers
                             </a>
                             <a href="../cards/my_cards.php" class="btn btn-outline-success">
                                 <i class="fas fa-credit-card"></i> View My Cards
@@ -370,6 +403,29 @@ if (gateData.length > 0) {
 
 .card:hover {
     transform: translateY(-2px);
+}
+
+.clickable-card {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.clickable-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 123, 255, 0.15);
+    text-decoration: none;
+    color: inherit;
+}
+
+.clickable-card .card-header {
+    background: linear-gradient(45deg, #007bff, #0056b3);
+    color: white;
+}
+
+.clickable-card .card-title {
+    color: white;
 }
 
 .display-4 {
