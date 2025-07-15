@@ -179,43 +179,7 @@ include '../includes/sidebar.php';
             Officers on this page: <?php echo count($security_officers); ?>
         </div>
         
-        <!-- Search and Filter -->
-        <div class="card mb-4">
-            <div class="card-body">
-                <form method="GET" action="" class="row g-3">
-                    <div class="col-md-4">
-                        <label for="search" class="form-label">Search</label>
-                        <input type="text" id="search" name="search" class="form-control" 
-                               value="<?php echo htmlspecialchars($search); ?>" 
-                               placeholder="Search by code, name, or email">
-                    </div>
-                    <div class="col-md-3">
-                        <label for="status" class="form-label">Status</label>
-                        <select id="status" name="status" class="form-select">
-                            <option value="">All Status</option>
-                            <option value="1" <?php echo $status_filter === '1' ? 'selected' : ''; ?>>Active</option>
-                            <option value="0" <?php echo $status_filter === '0' ? 'selected' : ''; ?>>Inactive</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-search"></i> Search
-                            </button>
-                        </div>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label">&nbsp;</label>
-                        <div class="d-grid">
-                            <a href="security_officers.php" class="btn btn-secondary">
-                                <i class="fas fa-times"></i> Clear
-                            </a>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
+       
         
         <!-- Registration Form (Hidden by default) -->
         <div id="registrationForm" class="card mb-4" style="display: none;">
@@ -300,62 +264,51 @@ include '../includes/sidebar.php';
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-warning">
-                        <i class="fas fa-user-clock"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-number">
-                            <?php 
-                            $online_count = array_reduce($security_officers, function($carry, $officer) {
-                                if ($officer['last_login']) {
-                                    $last_login = strtotime($officer['last_login']);
-                                    $now = time();
-                                    return $carry + (($now - $last_login) < 3600 ? 1 : 0); // Online if logged in within 1 hour
-                                }
-                                return $carry;
-                            }, 0);
-                            echo $online_count;
-                            ?>
-                        </div>
-                        <div class="stat-label">Online Now</div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-3">
-                <div class="stat-card">
-                    <div class="stat-icon bg-info">
-                        <i class="fas fa-clipboard-list"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-number">
-                            <?php 
-                            $total_logs = array_reduce($security_officers, function($carry, $officer) {
-                                return $carry + $officer['log_count'];
-                            }, 0);
-                            echo $total_logs;
-                            ?>
-                        </div>
-                        <div class="stat-label">Total Logs</div>
-                    </div>
-                </div>
-            </div>
+           
+           
         </div>
         
         <!-- Security Officers Table -->
         <div class="card">
             <div class="card-header">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-shield-alt"></i> Security Officers List
-                    <?php if ($search || $status_filter !== ''): ?>
-                        <span class="badge bg-secondary ms-2">Filtered</span>
-                    <?php endif; ?>
-                </h5>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-shield-alt"></i> Security Officers List
+                        <?php if ($search || $status_filter !== ''): ?>
+                            <span class="badge bg-secondary ms-2">Filtered</span>
+                        <?php endif; ?>
+                    </h5>
+                    
+                    <!-- Search and Filter Controls -->
+                    <div class="d-flex gap-2">
+                        <div class="position-relative">
+                            <input type="text" 
+                                   id="tableSearch" 
+                                   class="form-control" 
+                                   placeholder="Search officers..." 
+                                   style="width: 250px;">
+                            <i class="fas fa-search position-absolute top-50 end-0 translate-middle-y me-3 text-muted"></i>
+                        </div>
+                        <select id="statusFilter" class="form-select" style="width: 150px;">
+                            <option value="">All Status</option>
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                        </select>
+                        <button type="button" class="btn btn-outline-secondary" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
             </div>
             <div class="card-body">
+                <!-- Search Results Info -->
+                <div id="searchInfo" class="alert alert-info d-none">
+                    <i class="fas fa-info-circle"></i>
+                    <span id="searchInfoText"></span>
+                </div>
+                
                 <?php if (empty($security_officers)): ?>
-                    <div class="text-center py-4">
+                    <div class="text-center py-4" id="noDataMessage">
                         <i class="fas fa-users fa-3x text-muted mb-3"></i>
                         <h5>No Security Officers Found</h5>
                         <p class="text-muted">
@@ -371,7 +324,7 @@ include '../includes/sidebar.php';
                     </div>
                 <?php else: ?>
                     <div class="table-responsive">
-                        <table class="table table-hover">
+                        <table class="table table-hover" id="officersTable">
                             <thead>
                                 <tr>
                                     <th>Security Code</th>
@@ -385,7 +338,9 @@ include '../includes/sidebar.php';
                             </thead>
                             <tbody>
                                 <?php foreach ($security_officers as $officer): ?>
-                                    <tr>
+                                    <tr class="officer-row" 
+                                        data-search="<?php echo htmlspecialchars(strtolower($officer['security_code'] . ' ' . $officer['first_name'] . ' ' . $officer['last_name'] . ' ' . $officer['email'] . ' ' . $officer['phone'])); ?>"
+                                        data-status="<?php echo $officer['is_active'] ? 'active' : 'inactive'; ?>">
                                         <td>
                                             <code class="text-primary"><?php echo htmlspecialchars($officer['security_code']); ?></code>
                                         </td>
@@ -470,9 +425,19 @@ include '../includes/sidebar.php';
                         </table>
                     </div>
                     
+                    <!-- No Results Message (Hidden by default) -->
+                    <div id="noResultsMessage" class="text-center py-4 d-none">
+                        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                        <h5>No Officers Found</h5>
+                        <p class="text-muted">No security officers match your search criteria.</p>
+                        <button type="button" class="btn btn-outline-primary" onclick="clearFilters()">
+                            <i class="fas fa-times"></i> Clear Search
+                        </button>
+                    </div>
+                    
                     <!-- Pagination -->
                     <?php if ($total_pages > 1): ?>
-                        <nav aria-label="Security officers pagination" class="mt-4">
+                        <nav aria-label="Security officers pagination" class="mt-4" id="paginationNav">
                             <ul class="pagination justify-content-center">
                                 <?php if ($page > 1): ?>
                                     <li class="page-item">
@@ -522,6 +487,128 @@ include '../includes/sidebar.php';
 </div>
 
 <script>
+// Auto-search functionality
+let searchTimeout;
+let allRows = [];
+let visibleRows = [];
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize search functionality
+    initializeSearch();
+    
+    // Auto-hide success message after 5 seconds
+    const successAlert = document.querySelector('.alert-success');
+    if (successAlert) {
+        setTimeout(() => {
+            successAlert.style.display = 'none';
+        }, 5000);
+    }
+});
+
+function initializeSearch() {
+    const searchInput = document.getElementById('tableSearch');
+    const statusFilter = document.getElementById('statusFilter');
+    const tableRows = document.querySelectorAll('.officer-row');
+    
+    // Store all rows for filtering
+    allRows = Array.from(tableRows);
+    visibleRows = [...allRows];
+    
+    // Search input event
+    searchInput.addEventListener('input', function() {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(function() {
+            filterTable();
+        }, 300); // Debounce search by 300ms
+    });
+    
+    // Status filter event
+    statusFilter.addEventListener('change', function() {
+        filterTable();
+    });
+    
+    // Enter key support
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            filterTable();
+        }
+    });
+}
+
+function filterTable() {
+    const searchTerm = document.getElementById('tableSearch').value.toLowerCase().trim();
+    const statusFilter = document.getElementById('statusFilter').value;
+    
+    let filteredRows = allRows.filter(row => {
+        const searchData = row.getAttribute('data-search');
+        const statusData = row.getAttribute('data-status');
+        
+        // Check search term
+        const matchesSearch = !searchTerm || searchData.includes(searchTerm);
+        
+        // Check status filter
+        const matchesStatus = !statusFilter || statusData === statusFilter;
+        
+        return matchesSearch && matchesStatus;
+    });
+    
+    // Hide all rows first
+    allRows.forEach(row => {
+        row.style.display = 'none';
+    });
+    
+    // Show filtered rows
+    filteredRows.forEach(row => {
+        row.style.display = '';
+    });
+    
+    visibleRows = filteredRows;
+    
+    // Update UI based on results
+    updateSearchUI(filteredRows.length, searchTerm, statusFilter);
+}
+
+function updateSearchUI(resultCount, searchTerm, statusFilter) {
+    const searchInfo = document.getElementById('searchInfo');
+    const searchInfoText = document.getElementById('searchInfoText');
+    const noResultsMessage = document.getElementById('noResultsMessage');
+    const paginationNav = document.getElementById('paginationNav');
+    const table = document.getElementById('officersTable');
+    
+    // Update search info
+    if (searchTerm || statusFilter) {
+        let infoText = `Showing ${resultCount} officer${resultCount !== 1 ? 's' : ''}`;
+        if (searchTerm) {
+            infoText += ` matching "${searchTerm}"`;
+        }
+        if (statusFilter) {
+            infoText += ` with status "${statusFilter}"`;
+        }
+        searchInfoText.textContent = infoText;
+        searchInfo.classList.remove('d-none');
+    } else {
+        searchInfo.classList.add('d-none');
+    }
+    
+    // Show/hide no results message
+    if (resultCount === 0) {
+        table.style.display = 'none';
+        noResultsMessage.classList.remove('d-none');
+        if (paginationNav) paginationNav.style.display = 'none';
+    } else {
+        table.style.display = '';
+        noResultsMessage.classList.add('d-none');
+        if (paginationNav) paginationNav.style.display = '';
+    }
+}
+
+function clearFilters() {
+    document.getElementById('tableSearch').value = '';
+    document.getElementById('statusFilter').value = '';
+    filterTable();
+}
+
 function toggleRegistrationForm() {
     const form = document.getElementById('registrationForm');
     if (form.style.display === 'none') {
@@ -563,15 +650,95 @@ function deleteOfficer(officerId, officerName) {
     }
 }
 
-// Auto-hide success message after 5 seconds
-document.addEventListener('DOMContentLoaded', function() {
-    const successAlert = document.querySelector('.alert-success');
-    if (successAlert) {
-        setTimeout(() => {
-            successAlert.style.display = 'none';
-        }, 5000);
-    }
-});
+// Highlight search terms in the table
+function highlightSearchTerms(term) {
+    if (!term) return;
+    
+    const rows = document.querySelectorAll('.officer-row');
+    rows.forEach(row => {
+        const cells = row.querySelectorAll('td');
+        cells.forEach(cell => {
+            const text = cell.textContent;
+            if (text.toLowerCase().includes(term.toLowerCase())) {
+                // Simple highlight - you can enhance this
+                cell.style.backgroundColor = '#fff3cd';
+            } else {
+                cell.style.backgroundColor = '';
+            }
+        });
+    });
+}
+
+// Export filtered results (bonus feature)
+function exportFilteredResults() {
+    const visibleData = visibleRows.map(row => {
+        const cells = row.querySelectorAll('td');
+        return Array.from(cells).map(cell => cell.textContent.trim());
+    });
+    
+    console.log('Filtered results:', visibleData);
+    // You can implement CSV export here
+}
 </script>
 
-<?php include '../includes/footer.php'; ?> 
+<!-- Additional CSS for search enhancements -->
+<style>
+.position-relative input[type="text"] {
+    padding-right: 2.5rem;
+}
+
+.table-responsive {
+    transition: all 0.3s ease;
+}
+
+.officer-row {
+    transition: all 0.2s ease;
+}
+
+.officer-row:hover {
+    background-color: #f8f9fa;
+}
+
+.search-highlight {
+    background-color: #fff3cd;
+    padding: 0.1rem 0.2rem;
+    border-radius: 0.2rem;
+}
+
+.search-no-results {
+    opacity: 0.6;
+}
+
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.btn-group .btn {
+    transition: all 0.2s ease;
+}
+
+.alert-info {
+    border-left: 4px solid #0dcaf0;
+}
+
+.stat-card {
+    transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    .d-flex.gap-2 {
+        flex-direction: column;
+    }
+    
+    .d-flex.gap-2 > * {
+        width: 100% !important;
+    }
+}
+</style>
+
+<?php include '../includes/footer.php'; ?>

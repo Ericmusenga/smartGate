@@ -115,20 +115,23 @@ body {
 }
 
 .logout-btn {
-    background: linear-gradient(45deg, #e74c3c, #c0392b);
-    color: white;
+    background: #e74c3c !important;
+    color: #fff !important;
     border: none;
-    padding: 0.5rem 1rem;
+    padding: 0.5rem 1.2rem;
     border-radius: 20px;
     cursor: pointer;
-    transition: all 0.3s ease;
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 1rem;
+    font-weight: 600;
+    transition: background 0.2s, color 0.2s;
+    box-shadow: 0 2px 8px rgba(231, 76, 60, 0.08);
 }
 
-.logout-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 5px 15px rgba(231, 76, 60, 0.4);
+.logout-btn:hover, .logout-btn:focus {
+    background: #c0392b !important;
+    color: #fff !important;
+    text-decoration: none;
 }
 
 /* Sidebar Styles */
@@ -203,8 +206,9 @@ body {
 .main-content {
     margin-left: 280px;
     margin-top: 80px;
+    margin-bottom: 80px; /* Add bottom margin for fixed footer */
     padding: 2rem;
-    min-height: calc(100vh - 80px);
+    min-height: calc(100vh - 80px - 80px); /* Subtract header and footer heights */
     transition: margin-left 0.3s ease;
 }
 
@@ -475,13 +479,19 @@ body {
 
 /* Footer */
 .footer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
     padding: 1rem 2rem;
     text-align: center;
     color: #7f8c8d;
     border-top: 1px solid rgba(0, 0, 0, 0.1);
-    margin-top: auto;
+    z-index: 1000;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 /* Loading overlay */
@@ -802,3 +812,55 @@ body {
 .gap-3 { gap: 1rem; }
 .gap-4 { gap: 1.5rem; }
 .gap-5 { gap: 3rem; } 
+
+/* RFID Logs Table Improvements */
+.log-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.95rem;
+    background: #fff;
+    table-layout: auto;
+    min-width: 1100px;
+}
+.log-table th.student-col, .log-table td.student-col {
+    min-width: 160px;
+    max-width: 220px;
+}
+.log-table th.serial-col, .log-table td.serial-col {
+    min-width: 120px;
+    max-width: 160px;
+}
+.log-table th.regno-col, .log-table td.regno-col {
+    min-width: 120px;
+    max-width: 160px;
+}
+.log-table th, .log-table td {
+    padding: 8px 8px;
+    border: 1px solid #e0e0e0;
+    text-align: left;
+    white-space: nowrap;
+    max-width: 110px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.log-table th.status-col, .log-table td.status-col,
+.log-table th.method-col, .log-table td.method-col,
+.log-table th.year-col, .log-table td.year-col,
+.log-table th.phone-col, .log-table td.phone-col {
+    max-width: 80px;
+    min-width: 60px;
+}
+.log-table th {
+    background: #f4f6fb;
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+    z-index: 2;
+}
+.table-container {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    margin-bottom: 1.5rem;
+} 

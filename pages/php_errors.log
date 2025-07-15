@@ -1,0 +1,5 @@
+[09-Jul-2025 13:19:37 Europe/Berlin] PHP Fatal error:  Uncaught Error: Undefined constant "APP_NAME" in C:\xampp\htdocs\Capstone_project\includes\header.php:11
+Stack trace:
+#0 C:\xampp\htdocs\Capstone_project\pages\register_student.php(43): include()
+#1 {main}
+  thrown in C:\xampp\htdocs\Capstone_project\includes\header.php on line 11

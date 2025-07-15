@@ -188,12 +188,18 @@ function validateField(field) {
         }
     }
 
-    // Phone validation
-    if (fieldName === 'phone' && value) {
-        const phoneRegex = /^[\+]?[0-9\s\-\(\)]{10,}$/;
-        if (!phoneRegex.test(value)) {
+    // Registration number and ID number validation
+    if ((fieldName === 'registration_number' || fieldName === 'id_number') && value) {
+        if (!/^\d{1,15}$/.test(value)) {
             isValid = false;
-            errorMessage = 'Please enter a valid phone number.';
+            errorMessage = 'Must be numeric and less than 16 digits.';
+        }
+    }
+    // Phone validation (override previous if present)
+    if ((fieldName === 'phone' || fieldName === 'emergency_phone' || fieldName === 'telephone') && value) {
+        if (!/^\d{10,}$/.test(value)) {
+            isValid = false;
+            errorMessage = 'Must be numeric and at least 10 digits.';
         }
     }
 

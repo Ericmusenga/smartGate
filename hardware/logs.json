@@ -1,0 +1,275 @@
+[
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:00:22",
+        "uid": "B1839C1B"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:00:52",
+        "uid": "B1839C1B"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:00:46",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:00:58",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:01:05",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 2,
+        "status": "IN",
+        "timestamp": "00:01:53",
+        "uid": "B1839C1B"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "OUT",
+        "timestamp": "00:02:19",
+        "uid": "B1839C1B"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 2,
+        "status": "IN",
+        "timestamp": "00:02:24",
+        "uid": "B1839C1B"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "OUT",
+        "timestamp": "00:05:39",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 2,
+        "status": "IN",
+        "timestamp": "00:11:48",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "OUT",
+        "timestamp": "00:11:55",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 2,
+        "status": "IN",
+        "timestamp": "00:28:03",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "OUT",
+        "timestamp": "00:28:11",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 2,
+        "status": "IN",
+        "timestamp": "00:31:58",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "OUT",
+        "timestamp": "00:32:02",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 2,
+        "status": "IN",
+        "timestamp": "00:34:00",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "OUT",
+        "timestamp": "00:34:09",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:00:07",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:00:49",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:01:26",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:01:36",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:01:48",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:01:56",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:03:29",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:08:55",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:09:02",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:09:17",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:09:30",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:09:42",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:13:00",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:19:52",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:20:02",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:20:39",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:20:57",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:21:31",
+        "uid": "51C43247"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:23:05",
+        "uid": "D7430104"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:23:13",
+        "uid": "D7430104"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 1,
+        "status": "IN",
+        "timestamp": "00:24:20",
+        "uid": "D7430104"
+    },
+    {
+        "event": "RFID_SCAN",
+        "count": 0,
+        "status": "OUT",
+        "timestamp": "00:24:30",
+        "uid": "D7430104"
+    }
+]

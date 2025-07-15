@@ -298,11 +298,13 @@ include '../includes/sidebar.php';
                                     <th>Status</th>
                                     <th>Account</th>
                                     <th>Devices</th>
+                                    <th>S.Number</th>
                                     <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($students as $student): ?>
+                                <?php foreach (
+                                    $students as $student): ?>
                                     <tr>
                                         <td>
                                             <strong><?php echo htmlspecialchars($student['registration_number']); ?></strong>
@@ -311,7 +313,7 @@ include '../includes/sidebar.php';
                                             <div class="student-name">
                                                 <strong><?php echo htmlspecialchars($student['first_name'] . ' ' . $student['last_name']); ?></strong>
                                                 <?php if ($student['gender']): ?>
-                                                    <small class="gender-badge"><?php echo ucfirst($student['gender']); ?></small>
+                                                    <span class="badge bg-secondary ms-1"><?php echo ucfirst($student['gender']); ?></span>
                                                 <?php endif; ?>
                                             </div>
                                         </td>
@@ -323,27 +325,23 @@ include '../includes/sidebar.php';
                                         <td><?php echo htmlspecialchars($student['department']); ?></td>
                                         <td><?php echo htmlspecialchars($student['program']); ?></td>
                                         <td>
-                                            <span class="year-badge">Year <?php echo $student['year_of_study']; ?></span>
+                                            <span class="badge bg-primary">Year <?php echo $student['year_of_study']; ?></span>
                                         </td>
                                         <td>
                                             <?php if ($student['is_active']): ?>
-                                                <span class="status-badge status-active">Active</span>
+                                                <span class="badge bg-success">Active</span>
                                             <?php else: ?>
-                                                <span class="status-badge status-inactive">Inactive</span>
+                                                <span class="badge bg-danger">Inactive</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
                                             <?php if ($student['username']): ?>
-                                                <span class="account-badge account-exists">
-                                                    <i class="fas fa-check"></i> Account
-                                                </span>
+                                                <span class="badge bg-info"><i class="fas fa-check"></i> Account</span>
                                                 <?php if ($student['is_first_login']): ?>
-                                                    <small class="text-warning">First login</small>
+                                                    <span class="text-warning">First login</span>
                                                 <?php endif; ?>
                                             <?php else: ?>
-                                                <span class="account-badge account-missing">
-                                                    <i class="fas fa-times"></i> No Account
-                                                </span>
+                                                <span class="badge bg-secondary"><i class="fas fa-times"></i> No Account</span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -351,6 +349,7 @@ include '../includes/sidebar.php';
                                                 <?php echo $student['device_count']; ?> device<?php echo $student['device_count'] != 1 ? 's' : ''; ?>
                                             </span>
                                         </td>
+                                        <td><?php echo htmlspecialchars($student['serial_number']); ?></td>
                                         <td>
                                             <div class="action-buttons">
                                                 <a href="#" 
@@ -1355,6 +1354,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         <label>Year of Study:</label>
                         <div class="value">
                             <span class="year-badge">Year ${student.year_of_study}</span>
+                        </div>
+                         ${student.S.Number ? `
+                        <div class="detail-item">
+                            <label>Username:</label>
+                            <div class="value">${student.S.Number}</div>
                         </div>
                     </div>
                     <div class="detail-item">

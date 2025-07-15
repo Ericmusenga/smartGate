@@ -70,6 +70,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit();
     }
     
+    if (!preg_match('/^\d{1,15}$/', $registration_number)) {
+        echo json_encode(['error' => 'Registration number must be numeric and less than 16 digits.']);
+        exit();
+    }
+    if (!preg_match('/^\d{10,}$/', $phone)) {
+        echo json_encode(['error' => 'Phone number must be numeric and at least 10 digits.']);
+        exit();
+    }
+    
     try {
         $db = getDB();
         

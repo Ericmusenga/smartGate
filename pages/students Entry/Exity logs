@@ -1,0 +1,358 @@
+<?php
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Handle form submission
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Here you would typically validate and save the student log data
+    // For now, we'll just show a success message
+    $success_message = "Student log recorded successfully!";
+}
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Entry/Exit Logs - Security Dashboard</title>
+    <link rel="stylesheet" href="/Capstone_project/assets/css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <style>
+        /* Keep your existing styles from the visitor form */
+        /* Add these additional styles for the student log table */
+        
+        .log-table-container {
+            overflow-x: auto;
+            margin-top: 20px;
+        }
+        
+        .log-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        
+        .log-table th, .log-table td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .log-table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+            position: sticky;
+            top: 0;
+        }
+        
+        .log-table tr:hover {
+            background-color: #f4f6fb;
+        }
+        
+        .log-status-entry {
+            color: #28a745;
+            font-weight: 500;
+        }
+        
+        .log-status-exit {
+            color: #dc3545;
+            font-weight: 500;
+        }
+        
+        .search-filter {
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .search-filter .form-grid {
+            margin-bottom: 0;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.875rem;
+        }
+        
+        .btn-print {
+            background: linear-gradient(135deg, #6c757d, #5a6268);
+            color: #fff;
+        }
+        
+        .btn-print:hover {
+            background: #5a6268;
+        }
+        
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .pagination a {
+            padding: 8px 16px;
+            margin: 0 4px;
+            border: 1px solid #e9ecef;
+            border-radius: 4px;
+            text-decoration: none;
+            color: #2c3e50;
+        }
+        
+        .pagination a.active {
+            background: #007bff;
+            color: #fff;
+            border-color: #007bff;
+        }
+        
+        .pagination a:hover:not(.active) {
+            background-color: #f4f6fb;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <button class="sidebar-toggle" onclick="toggleSidebar()"><i class="fas fa-bars"></i></button>
+        <div style="font-size: 1.3rem; font-weight: bold; letter-spacing: 1px;">Gate Management System - Security</div>
+        <div class="user-info">
+            <div class="user-avatar">S</div>
+            <span>Security Officer</span>
+            <a href="/Capstone_project/logout.php" class="logout-btn" style="background:#e74c3c; color:#fff; padding:0.5rem 1rem; border-radius:20px; text-decoration:none;">Logout</a>
+        </div>
+    </header>
+    
+    <aside class="sidebar" id="sidebar">
+        <nav class="sidebar-menu">
+            <div class="menu-section">
+                <h3>Security</h3>
+                <a href="/Capstone_project/pages/dashboard_security.php" class="menu-item"><i class="fas fa-shield-alt"></i> Dashboard</a>
+                <a href="/Capstone_project/pages/visitor_form.php" class="menu-item"><i class="fas fa-user-plus"></i> Register Visitor</a>
+                <a href="/Capstone_project/pages/visitors.php" class="menu-item"><i class="fas fa-users"></i> Manage Visitors</a>
+                <a href="/Capstone_project/pages/logs.php" class="menu-item active"><i class="fas fa-clipboard-list"></i> Student Entry/Exit Logs</a>
+                <a href="/Capstone_project/pages/visitor_logs.php" class="menu-item"><i class="fas fa-address-book"></i> Visitor Entry/Exit Logs</a>
+            </div>
+            <div class="menu-section">
+                <h3>Account</h3>
+                <a href="/Capstone_project/change_password.php" class="menu-item"><i class="fas fa-key"></i> Change Password</a>
+                <a href="/Capstone_project/logout.php" class="menu-item"><i class="fas fa-sign-out-alt"></i> Logout</a>
+            </div>
+        </nav>
+    </aside>
+    
+    <div class="main-content">
+        <div class="form-container">
+            <div class="form-header">
+                <h1 class="form-title"><i class="fas fa-clipboard-list"></i> Student Entry/Exit Logs</h1>
+                <p class="form-subtitle">Track and manage student movements</p>
+            </div>
+            
+            <?php if (isset($success_message)): ?>
+                <div class="alert alert-success">
+                    <i class="fas fa-check-circle"></i> <?php echo $success_message; ?>
+                </div>
+            <?php endif; ?>
+            
+            <div class="search-filter">
+                <form method="GET" action="">
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="student_id">Student ID</label>
+                            <input type="text" id="student_id" name="student_id" class="form-control" 
+                                   placeholder="Enter student ID">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="name">Student Name</label>
+                            <input type="text" id="name" name="name" class="form-control" 
+                                   placeholder="Enter student name">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="date">Date</label>
+                            <input type="date" id="date" name="date" class="form-control">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="status">Entry/Exit</label>
+                            <select id="status" name="status" class="form-control">
+                                <option value="">All</option>
+                                <option value="entry">Entry</option>
+                                <option value="exit">Exit</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                        <button type="reset" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="form-actions">
+                <a href="#" class="btn btn-primary" data-toggle="modal" data-target="#addLogModal">
+                    <i class="fas fa-plus"></i> Add New Log
+                </a>
+                <button class="btn btn-print" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print
+                </button>
+            </div>
+            
+            <div class="log-table-container">
+                <table class="log-table">
+                    <thead>
+                        <tr>
+                            <th>Log ID</th>
+                            <th>Student ID</th>
+                            <th>Student Name</th>
+                            <th>Grade/Class</th>
+                            <th>Time</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Remarks</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Sample data - replace with PHP loop from database -->
+                        <tr>
+                            <td>LOG1001</td>
+                            <td>STU2023001</td>
+                            <td>John Doe</td>
+                            <td>Grade 10-A</td>
+                            <td>07:45 AM</td>
+                            <td>2023-05-15</td>
+                            <td><span class="log-status-entry">Entry</span></td>
+                            <td>Morning arrival</td>
+                            <td class="action-buttons">
+                                <button class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>LOG1002</td>
+                            <td>STU2023001</td>
+                            <td>John Doe</td>
+                            <td>Grade 10-A</td>
+                            <td>03:30 PM</td>
+                            <td>2023-05-15</td>
+                            <td><span class="log-status-exit">Exit</span></td>
+                            <td>Regular dismissal</td>
+                            <td class="action-buttons">
+                                <button class="btn btn-primary btn-sm">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-secondary btn-sm">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                        <!-- Add more rows as needed -->
+                    </tbody>
+                </table>
+                
+                <div class="pagination">
+                    <a href="#">&laquo;</a>
+                    <a href="#" class="active">1</a>
+                    <a href="#">2</a>
+                    <a href="#">3</a>
+                    <a href="#">&raquo;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Add Log Modal -->
+    <div class="modal" id="addLogModal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Student Log</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form method="POST" action="">
+                        <div class="form-group">
+                            <label for="log_student_id">Student ID <span class="required">*</span></label>
+                            <input type="text" id="log_student_id" name="student_id" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="log_student_name">Student Name <span class="required">*</span></label>
+                            <input type="text" id="log_student_name" name="student_name" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="log_grade">Grade/Class <span class="required">*</span></label>
+                            <input type="text" id="log_grade" name="grade" class="form-control" required>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="log_date">Date <span class="required">*</span></label>
+                                <input type="date" id="log_date" name="date" class="form-control" required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="log_time">Time <span class="required">*</span></label>
+                                <input type="time" id="log_time" name="time" class="form-control" required>
+                            </div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="log_status">Status <span class="required">*</span></label>
+                            <select id="log_status" name="status" class="form-control" required>
+                                <option value="">Select Status</option>
+                                <option value="entry">Entry</option>
+                                <option value="exit">Exit</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="log_remarks">Remarks</label>
+                            <textarea id="log_remarks" name="remarks" class="form-control textarea-control" 
+                                      placeholder="Optional remarks (e.g., late arrival, early dismissal)"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">Save Log</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Keep your existing JavaScript functions
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('closed');
+        }
+        
+        // Add modal functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            // This would be replaced with actual modal handling code
+            // Using Bootstrap modals would be ideal if available
+        });
+    </script>
+</body>
+</html>

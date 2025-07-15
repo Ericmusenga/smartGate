@@ -89,7 +89,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             } else {
                 // If user not found by username, try to find by registration number or security code
-                $sql = "SELECT u.*, r.role_name, s.registration_number, so.security_code 
+                $sql = "SELECT u.*, r.role_name, s.*, so.security_code 
                         FROM users u 
                         JOIN roles r ON u.role_id = r.id 
                         LEFT JOIN students s ON u.student_id = s.id 
@@ -139,6 +139,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -385,17 +387,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 </button>
             </form>
             
-            <div class="demo-credentials">
-                <h4><i class="fas fa-info-circle"></i> Demo Credentials</h4>
-                <p><strong>Admin:</strong> admin / admin123</p>
-                <p><strong>Student:</strong> 2023/001 / 2023/001</p>
-                <p><strong>Security:</strong> SEC001 / SEC001</p>
-            </div>
-            
-            <div class="setup-links">
-                <a href="setup_database.php"><i class="fas fa-database"></i> Setup Database</a>
-                <a href="test_database.php"><i class="fas fa-check"></i> Test Database</a>
-            </div>
+           
             
             <div class="login-help">
                 <p>Need help? Contact system administrator</p>

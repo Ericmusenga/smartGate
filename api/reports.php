@@ -1,549 +1,351 @@
 <?php
-require_once '../config/config.php';
+// api/reports.php - Add this visitor report handling section
 
-// Set JSON header
-header('Content-Type: application/json');
+// Add this case in your existing switch statement for report generation
+case 'visitors':
+    // Get parameters
+    $start_date = $_POST['start_date'] ?? '';
+    $end_date = $_POST['end_date'] ?? '';
+    $department = $_POST['department'] ?? '';
+    $status = $_POST['status'] ?? '';
+    $person_to_visit = $_POST['person_to_visit'] ?? '';
+    $format = $_POST['format'] ?? 'pdf';
+    
+    // Build query with filters
+    $query = "SELECT 
+                v.id,
+                v.visitor_name,
+                v.id_number,
+                v.email,
+                v.telephone,
+                v.department,
+                v.person_to_visit,
+                v.purpose,
+                v.equipment_brought,
+                v.other_equipment_details,
+                v.registration_date,
+                v.status,
+                DATE_FORMAT(v.registration_date, '%Y-%m-%d %H:%i:%s') as formatted_registration_date,
+                DATE_FORMAT(v.created_at, '%Y-%m-%d %H:%i:%s') as formatted_created_at
+              FROM vistor v 
+              WHERE 1=1";
+    
+    $params = [];
+    
+    // Add date range filter
+    if (!empty($start_date) && !empty($end_date)) {
+        $query .= " AND DATE(v.registration_date) BETWEEN ? AND ?";
+        $params[] = $start_date;
+        $params[] = $end_date;
+    }
+    
+    // Add department filter
+    if (!empty($department)) {
+        $query .= " AND v.department = ?";
+        $params[] = $department;
+    }
+    
+    // Add status filter
+    if (!empty($status)) {
+        $query .= " AND v.status = ?";
+        $params[] = $status;
+    }
+    
+    // Add person to visit filter
+    if (!empty($person_to_visit)) {
+        $query .= " AND v.person_to_visit LIKE ?";
+        $params[] = '%' . $person_to_visit . '%';
+    }
+    
+    $query .= " ORDER BY v.registration_date DESC";
+    
+    try {
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($params);
+        $visitors = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+        if ($format === 'pdf') {
+            generateVisitorPDF($visitors, $start_date, $end_date);
+        }
+        
+    } catch (Exception $e) {
+        http_response_code(500);
+        echo json_encode(['success' => false, 'message' => 'Error generating visitor report: ' . $e->getMessage()]);
+    }
+    break;
 
-// Check if user is logged in
-if (!is_logged_in()) {
-    echo json_encode(['success' => false, 'message' => 'Unauthorized access']);
+// Add this function to generate visitor PDF
+function generateVisitorPDF($visitors, $start_date, $end_date) {
+    require_once '../vendor/autoload.php'; // Assuming you're using TCPDF or similar
+    
+    // If using TCPDF
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    
+    // Set document information
+    $pdf->SetCreator('Visitor Management System');
+    $pdf->SetAuthor('System Administrator');
+    $pdf->SetTitle('Visitor Report');
+    $pdf->SetSubject('Visitor Report');
+    
+    // Set default header data
+    $pdf->SetHeaderData('', 0, 'Visitor Report', 'Generated on ' . date('Y-m-d H:i:s') . "\nPeriod: " . $start_date . ' to ' . $end_date);
+    
+    // Set header and footer fonts
+    $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+    $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+    
+    // Set default monospaced font
+    $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+    
+    // Set margins
+    $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+    $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+    $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+    
+    // Set auto page breaks
+    $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+    
+    // Set image scale factor
+    $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
+    
+    // Add a page
+    $pdf->AddPage();
+    
+    // Set font
+    $pdf->SetFont('helvetica', '', 10);
+    
+    // Summary section
+    $summary = '
+    <h2>Visitor Report Summary</h2>
+    <table border="1" cellpadding="5">
+        <tr>
+            <td><strong>Total Visitors:</strong></td>
+            <td>' . count($visitors) . '</td>
+        </tr>
+        <tr>
+            <td><strong>Report Period:</strong></td>
+            <td>' . $start_date . ' to ' . $end_date . '</td>
+        </tr>
+        <tr>
+            <td><strong>Generated:</strong></td>
+            <td>' . date('Y-m-d H:i:s') . '</td>
+        </tr>
+    </table>
+    <br><br>
+    ';
+    
+    $pdf->writeHTML($summary, true, false, true, false, '');
+    
+    // Visitor details table
+    $html = '
+    <h3>Visitor Details</h3>
+    <table border="1" cellpadding="3" cellspacing="0">
+        <thead>
+            <tr style="background-color: #f0f0f0;">
+                <th width="8%"><strong>ID</strong></th>
+                <th width="12%"><strong>Name</strong></th>
+                <th width="10%"><strong>ID Number</strong></th>
+                <th width="12%"><strong>Email</strong></th>
+                <th width="10%"><strong>Phone</strong></th>
+                <th width="12%"><strong>Department</strong></th>
+                <th width="12%"><strong>Person to Visit</strong></th>
+                <th width="12%"><strong>Registration Date</strong></th>
+                <th width="12%"><strong>Status</strong></th>
+            </tr>
+        </thead>
+        <tbody>';
+    
+    foreach ($visitors as $visitor) {
+        $html .= '
+            <tr>
+                <td>' . htmlspecialchars($visitor['id']) . '</td>
+                <td>' . htmlspecialchars($visitor['visitor_name']) . '</td>
+                <td>' . htmlspecialchars($visitor['id_number']) . '</td>
+                <td>' . htmlspecialchars($visitor['email'] ?? 'N/A') . '</td>
+                <td>' . htmlspecialchars($visitor['telephone']) . '</td>
+                <td>' . htmlspecialchars($visitor['department']) . '</td>
+                <td>' . htmlspecialchars($visitor['person_to_visit'] ?? 'N/A') . '</td>
+                <td>' . htmlspecialchars($visitor['formatted_registration_date']) . '</td>
+                <td>' . htmlspecialchars($visitor['status'] ?? 'Active') . '</td>
+            </tr>';
+    }
+    
+    $html .= '</tbody></table>';
+    
+    $pdf->writeHTML($html, true, false, true, false, '');
+    
+    // Add detailed visitor information on separate pages if needed
+    if (!empty($visitors)) {
+        $pdf->AddPage();
+        $pdf->writeHTML('<h3>Detailed Visitor Information</h3>', true, false, true, false, '');
+        
+        foreach ($visitors as $visitor) {
+            $detailHtml = '
+            <table border="1" cellpadding="5" style="margin-bottom: 20px;">
+                <tr>
+                    <td colspan="2" style="background-color: #f0f0f0;"><strong>Visitor ID: ' . $visitor['id'] . '</strong></td>
+                </tr>
+                <tr>
+                    <td width="30%"><strong>Name:</strong></td>
+                    <td width="70%">' . htmlspecialchars($visitor['visitor_name']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>ID Number:</strong></td>
+                    <td>' . htmlspecialchars($visitor['id_number']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Email:</strong></td>
+                    <td>' . htmlspecialchars($visitor['email'] ?? 'N/A') . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Telephone:</strong></td>
+                    <td>' . htmlspecialchars($visitor['telephone']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Department:</strong></td>
+                    <td>' . htmlspecialchars($visitor['department']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Person to Visit:</strong></td>
+                    <td>' . htmlspecialchars($visitor['person_to_visit'] ?? 'N/A') . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Purpose:</strong></td>
+                    <td>' . htmlspecialchars($visitor['purpose']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Equipment Brought:</strong></td>
+                    <td>' . htmlspecialchars($visitor['equipment_brought']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Other Equipment Details:</strong></td>
+                    <td>' . htmlspecialchars($visitor['other_equipment_details'] ?? 'N/A') . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Registration Date:</strong></td>
+                    <td>' . htmlspecialchars($visitor['formatted_registration_date']) . '</td>
+                </tr>
+                <tr>
+                    <td><strong>Status:</strong></td>
+                    <td>' . htmlspecialchars($visitor['status'] ?? 'Active') . '</td>
+                </tr>
+            </table>
+            <br>';
+            
+            $pdf->writeHTML($detailHtml, true, false, true, false, '');
+        }
+    }
+    
+    // Output PDF
+    $filename = 'visitor_report_' . date('Y-m-d_H-i-s') . '.pdf';
+    $pdf->Output($filename, 'D'); // 'D' for download
     exit;
 }
 
-$action = $_GET['action'] ?? '';
-
-try {
-    $pdo = get_pdo();
+// Add this function to get visitor filter data
+function getVisitorFilterData($pdo) {
+    $data = [];
     
-    switch ($action) {
-        case 'quick_stats':
-            // Get quick statistics for dashboard
-            $stats = [];
-            
-            // Total students
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM students WHERE status = 'active'");
-            $stmt->execute();
-            $stats['total_students'] = $stmt->fetch()['count'];
-            
-            // Active devices
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM devices WHERE status = 'active'");
-            $stmt->execute();
-            $stats['active_devices'] = $stmt->fetch()['count'];
-            
-            // Today's entries
-            $stmt = $pdo->prepare("SELECT COUNT(*) as count FROM entry_exit_logs WHERE DATE(entry_time) = CURDATE()");
-            $stmt->execute();
-            $stats['today_entries'] = $stmt->fetch()['count'];
-            
-            // Average daily entries (last 30 days)
-            $stmt = $pdo->prepare("
-                SELECT AVG(daily_count) as avg_entries 
-                FROM (
-                    SELECT DATE(entry_time) as date, COUNT(*) as daily_count
-                    FROM entry_exit_logs 
-                    WHERE entry_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY)
-                    GROUP BY DATE(entry_time)
-                ) as daily_counts
-            ");
-            $stmt->execute();
-            $result = $stmt->fetch();
-            $stats['avg_daily_entries'] = round($result['avg_entries'] ?? 0);
-            
-            echo json_encode([
-                'success' => true,
-                'stats' => $stats
-            ]);
-            break;
-            
-        case 'generate':
-            // Generate report based on parameters
-            if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-                echo json_encode(['success' => false, 'message' => 'POST method required']);
-                exit;
-            }
-            
-            $report_type = $_POST['report_type'] ?? '';
-            $start_date = $_POST['start_date'] ?? '';
-            $end_date = $_POST['end_date'] ?? '';
-            $format = $_POST['format'] ?? 'pdf';
-            
-            if (empty($report_type) || empty($start_date) || empty($end_date)) {
-                echo json_encode(['success' => false, 'message' => 'Missing required parameters']);
-                exit;
-            }
-            
-            // Validate date range
-            if (strtotime($start_date) > strtotime($end_date)) {
-                echo json_encode(['success' => false, 'message' => 'Start date cannot be after end date']);
-                exit;
-            }
-            
-            // Generate report based on type
-            $report_data = generateReportData($pdo, $report_type, $start_date, $end_date, $_POST);
-            
-            if ($report_data === false) {
-                echo json_encode(['success' => false, 'message' => 'Error generating report data']);
-                exit;
-            }
-            
-            // Set appropriate headers for file download
-            $filename = "report_{$report_type}_{$start_date}_to_{$end_date}";
-            
-            switch ($format) {
-                case 'csv':
-                    header('Content-Type: text/csv');
-                    header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
-                    outputCSV($report_data);
-                    break;
-                    
-                case 'excel':
-                    header('Content-Type: application/vnd.ms-excel');
-                    header('Content-Disposition: attachment; filename="' . $filename . '.xls"');
-                    outputExcel($report_data);
-                    break;
-                    
-                case 'pdf':
-                default:
-                    header('Content-Type: application/pdf');
-                    header('Content-Disposition: attachment; filename="' . $filename . '.pdf"');
-                    outputPDF($report_data, $report_type);
-                    break;
-            }
-            break;
-            
-        default:
-            echo json_encode(['success' => false, 'message' => 'Invalid action']);
-            break;
-    }
+    // Get unique departments
+    $stmt = $pdo->query("SELECT DISTINCT department FROM vistor WHERE department != '' ORDER BY department");
+    $data['departments'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
-} catch (PDOException $e) {
-    error_log("Database error in reports API: " . $e->getMessage());
-    echo json_encode(['success' => false, 'message' => 'Database error occurred']);
+    // Get unique statuses
+    $stmt = $pdo->query("SELECT DISTINCT status FROM vistor WHERE status IS NOT NULL AND status != '' ORDER BY status");
+    $data['statuses'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    // Get unique persons to visit
+    $stmt = $pdo->query("SELECT DISTINCT person_to_visit FROM vistor WHERE person_to_visit IS NOT NULL AND person_to_visit != '' ORDER BY person_to_visit");
+    $data['persons_to_visit'] = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    
+    return $data;
 }
 
-function generateReportData($pdo, $report_type, $start_date, $end_date, $filters) {
-    switch ($report_type) {
-        case 'entry_exit':
-            return generateEntryExitReport($pdo, $start_date, $end_date, $filters);
-            
-        case 'attendance':
-            return generateAttendanceReport($pdo, $start_date, $end_date, $filters);
-            
-        case 'device_usage':
-            return generateDeviceUsageReport($pdo, $start_date, $end_date, $filters);
-            
-        case 'rfid_cards':
-            return generateRFIDCardReport($pdo, $start_date, $end_date, $filters);
-            
-        case 'security':
-            return generateSecurityReport($pdo, $start_date, $end_date, $filters);
-            
-        case 'summary':
-            return generateSummaryReport($pdo, $start_date, $end_date, $filters);
-            
-        default:
-            return false;
-    }
-}
+// Add this function to generate student PDF
+function generateStudentPDF($students) {
+    require_once '../vendor/autoload.php'; // Assuming you're using TCPDF or similar
+    $pdf = new TCPDF(PDF_PAGE_ORIENTATION, PDF_UNIT, PDF_PAGE_FORMAT, true, 'UTF-8', false);
+    $pdf->SetCreator('Student Management System');
+    $pdf->SetAuthor('System Administrator');
+    $pdf->SetTitle('Student Report');
+    $pdf->SetSubject('Student Report');
+    $pdf->SetHeaderData('', 0, 'Student Report', 'Generated on ' . date('Y-m-d H:i:s'));
+    $pdf->setHeaderFont(Array(PDF_FONT_NAME_MAIN, '', PDF_FONT_SIZE_MAIN));
+    $pdf->setFooterFont(Array(PDF_FONT_NAME_DATA, '', PDF_FONT_SIZE_DATA));
+    $pdf->SetDefaultMonospacedFont(PDF_FONT_MONOSPACED);
+    $pdf->SetMargins(PDF_MARGIN_LEFT, PDF_MARGIN_TOP, PDF_MARGIN_RIGHT);
+    $pdf->SetHeaderMargin(PDF_MARGIN_HEADER);
+    $pdf->SetFooterMargin(PDF_MARGIN_FOOTER);
+    $pdf->SetAutoPageBreak(TRUE, PDF_MARGIN_BOTTOM);
+    $pdf->setImageScale(PDF_IMAGE_SCALE_RATIO);
 
-function generateEntryExitReport($pdo, $start_date, $end_date, $filters) {
-    $where_conditions = ["DATE(eel.entry_time) BETWEEN :start_date AND :end_date"];
-    $params = ['start_date' => $start_date, 'end_date' => $end_date];
-    
-    // Add filters
-    if (!empty($filters['student_id'])) {
-        $where_conditions[] = "eel.student_id = :student_id";
-        $params['student_id'] = $filters['student_id'];
-    }
-    
-    if (!empty($filters['device_id'])) {
-        $where_conditions[] = "eel.device_id = :device_id";
-        $params['device_id'] = $filters['device_id'];
-    }
-    
-    if (!empty($filters['entry_method'])) {
-        $where_conditions[] = "eel.entry_method = :entry_method";
-        $params['entry_method'] = $filters['entry_method'];
-    }
-    
-    if (!empty($filters['program'])) {
-        $where_conditions[] = "s.program = :program";
-        $params['program'] = $filters['program'];
-    }
-    
-    $where_clause = implode(' AND ', $where_conditions);
-    
-    $sql = "
-        SELECT 
-            eel.id,
-            s.registration_number,
-            s.first_name,
-            s.last_name,
-            s.program,
-            eel.entry_time,
-            eel.exit_time,
-            eel.entry_method,
-            eel.exit_method,
-            eel.entry_notes,
-            eel.exit_notes,
-            d.name as device_name,
-            d.location as device_location,
-            TIMESTAMPDIFF(MINUTE, eel.entry_time, eel.exit_time) as duration_minutes
-        FROM entry_exit_logs eel
-        JOIN students s ON eel.student_id = s.id
-        LEFT JOIN devices d ON eel.device_id = d.id
-        WHERE {$where_clause}
-        ORDER BY eel.entry_time DESC
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    
-    return [
-        'title' => 'Entry/Exit Report',
-        'period' => "{$start_date} to {$end_date}",
-        'headers' => [
-            'ID', 'Registration Number', 'First Name', 'Last Name', 'Program',
-            'Entry Time', 'Exit Time', 'Entry Method', 'Exit Method',
-            'Entry Notes', 'Exit Notes', 'Device', 'Location', 'Duration (min)'
-        ],
-        'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-    ];
-}
+    // 1. Summary page
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', '', 14);
+    $summary = '<h1 style="text-align:center;">Student Report Summary</h1>';
+    $summary .= '<table border="1" cellpadding="8" style="width:60%;margin:auto;">'
+        .'<tr><td><strong>Total Students:</strong></td><td>' . count($students) . '</td></tr>'
+        .'<tr><td><strong>Generated:</strong></td><td>' . date('Y-m-d H:i:s') . '</td></tr>'
+        .'</table>';
+    $pdf->writeHTML($summary, true, false, true, false, '');
 
-function generateAttendanceReport($pdo, $start_date, $end_date, $filters) {
-    $where_conditions = ["DATE(eel.entry_time) BETWEEN :start_date AND :end_date"];
-    $params = ['start_date' => $start_date, 'end_date' => $end_date];
-    
-    if (!empty($filters['student_id'])) {
-        $where_conditions[] = "eel.student_id = :student_id";
-        $params['student_id'] = $filters['student_id'];
+    // 2. Table of all students (on a new page)
+    $pdf->AddPage();
+    $pdf->SetFont('helvetica', '', 9);
+    $html = '<h2 style="text-align:center;">All Students</h2>';
+    $html .= '<style>th { background-color: #e0e0e0; font-weight: bold; } tr:nth-child(even) { background-color: #f9f9f9; } td, th { white-space: pre-line; }</style>';
+    $html .= '<table border="1" cellpadding="3" cellspacing="0" width="50%">'
+        .'<thead><tr>'
+        .'<th width="4%">ID</th>'
+        .'<th width="8%">Reg. Number</th>'
+        .'<th width="8%">Name</th>'
+        .'<th width="8%">Email</th>'
+        .'<th width="8%">Phone</th>'
+        .'<th width="8%">Department</th>'
+        .'<th width="8%">Program</th>'
+        .'<th width="5%">Year</th>'
+        .'<th width="5%">Gender</th>'
+        .'<th width="5%">Created At</th>'
+        .'</tr></thead><tbody>';
+    foreach ($students as $student) {
+        $html .= '<tr>'
+            .'<td>' . htmlspecialchars($student['id']) . '</td>'
+            .'<td>' . htmlspecialchars($student['registration_number']) . '</td>'
+            .'<td>' . htmlspecialchars($student['first_name'] . ' ' . $student['last_name']) . '</td>'
+            .'<td>' . htmlspecialchars($student['email']) . '</td>'
+            .'<td>' . htmlspecialchars($student['phone']) . '</td>'
+            .'<td>' . htmlspecialchars($student['department']) . '</td>'
+            .'<td>' . htmlspecialchars($student['program']) . '</td>'
+            .'<td>' . htmlspecialchars($student['year_of_study']) . '</td>'
+            .'<td>' . htmlspecialchars($student['gender']) . '</td>'
+            .'<td>' . htmlspecialchars($student['created_at']) . '</td>'
+            .'</tr>';
     }
-    
-    if (!empty($filters['program'])) {
-        $where_conditions[] = "s.program = :program";
-        $params['program'] = $filters['program'];
-    }
-    
-    $where_clause = implode(' AND ', $where_conditions);
-    
-    $sql = "
-        SELECT 
-            s.registration_number,
-            s.first_name,
-            s.last_name,
-            s.program,
-            COUNT(DISTINCT DATE(eel.entry_time)) as days_present,
-            COUNT(eel.id) as total_entries,
-            MIN(eel.entry_time) as first_entry,
-            MAX(eel.entry_time) as last_entry,
-            AVG(TIMESTAMPDIFF(MINUTE, eel.entry_time, eel.exit_time)) as avg_duration
-        FROM students s
-        LEFT JOIN entry_exit_logs eel ON s.id = eel.student_id AND {$where_clause}
-        WHERE s.status = 'active'
-        GROUP BY s.id, s.registration_number, s.first_name, s.last_name, s.program
-        ORDER BY s.first_name, s.last_name
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    
-    return [
-        'title' => 'Student Attendance Report',
-        'period' => "{$start_date} to {$end_date}",
-        'headers' => [
-            'Registration Number', 'First Name', 'Last Name', 'Program',
-            'Days Present', 'Total Entries', 'First Entry', 'Last Entry', 'Avg Duration (min)'
-        ],
-        'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-    ];
-}
+    $html .= '</tbody></table>';
+    $pdf->writeHTML($html, true, false, true, false, '');
 
-function generateDeviceUsageReport($pdo, $start_date, $end_date, $filters) {
-    $where_conditions = ["DATE(eel.entry_time) BETWEEN :start_date AND :end_date"];
-    $params = ['start_date' => $start_date, 'end_date' => $end_date];
-    
-    if (!empty($filters['device_type'])) {
-        $where_conditions[] = "d.device_type = :device_type";
-        $params['device_type'] = $filters['device_type'];
-    }
-    
-    if (!empty($filters['location'])) {
-        $where_conditions[] = "d.location = :location";
-        $params['location'] = $filters['location'];
-    }
-    
-    $where_clause = implode(' AND ', $where_conditions);
-    
-    $sql = "
-        SELECT 
-            d.name,
-            d.device_type,
-            d.location,
-            d.status,
-            COUNT(eel.id) as total_entries,
-            COUNT(DISTINCT eel.student_id) as unique_students,
-            COUNT(DISTINCT DATE(eel.entry_time)) as active_days,
-            MIN(eel.entry_time) as first_usage,
-            MAX(eel.entry_time) as last_usage
-        FROM devices d
-        LEFT JOIN entry_exit_logs eel ON d.id = eel.device_id AND {$where_clause}
-        WHERE d.status = 'active'
-        GROUP BY d.id, d.name, d.device_type, d.location, d.status
-        ORDER BY total_entries DESC
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute($params);
-    
-    return [
-        'title' => 'Device Usage Report',
-        'period' => "{$start_date} to {$end_date}",
-        'headers' => [
-            'Device Name', 'Type', 'Location', 'Status', 'Total Entries',
-            'Unique Students', 'Active Days', 'First Usage', 'Last Usage'
-        ],
-        'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-    ];
-}
-
-function generateRFIDCardReport($pdo, $start_date, $end_date, $filters) {
-    $sql = "
-        SELECT 
-            rc.card_number,
-            rc.status,
-            rc.issue_date,
-            rc.expiry_date,
-            s.registration_number,
-            s.first_name,
-            s.last_name,
-            s.program,
-            COUNT(eel.id) as usage_count,
-            MAX(eel.entry_time) as last_used
-        FROM rfid_cards rc
-        JOIN students s ON rc.student_id = s.id
-        LEFT JOIN entry_exit_logs eel ON rc.card_number = eel.rfid_card_number 
-            AND DATE(eel.entry_time) BETWEEN :start_date AND :end_date
-        WHERE s.status = 'active'
-        GROUP BY rc.id, rc.card_number, rc.status, rc.issue_date, rc.expiry_date,
-                 s.registration_number, s.first_name, s.last_name, s.program
-        ORDER BY s.first_name, s.last_name
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['start_date' => $start_date, 'end_date' => $end_date]);
-    
-    return [
-        'title' => 'RFID Card Report',
-        'period' => "{$start_date} to {$end_date}",
-        'headers' => [
-            'Card Number', 'Status', 'Issue Date', 'Expiry Date',
-            'Registration Number', 'First Name', 'Last Name', 'Program',
-            'Usage Count', 'Last Used'
-        ],
-        'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-    ];
-}
-
-function generateSecurityReport($pdo, $start_date, $end_date, $filters) {
-    $sql = "
-        SELECT 
-            eel.id,
-            s.registration_number,
-            s.first_name,
-            s.last_name,
-            eel.entry_time,
-            eel.exit_time,
-            eel.entry_method,
-            eel.exit_method,
-            eel.entry_notes,
-            eel.exit_notes,
-            d.name as device_name,
-            d.location as device_location,
-            CASE 
-                WHEN eel.exit_time IS NULL AND DATE(eel.entry_time) < CURDATE() THEN 'Overdue Exit'
-                WHEN eel.entry_method = 'manual' THEN 'Manual Entry'
-                ELSE 'Normal'
-            END as security_flag
-        FROM entry_exit_logs eel
-        JOIN students s ON eel.student_id = s.id
-        LEFT JOIN devices d ON eel.device_id = d.id
-        WHERE DATE(eel.entry_time) BETWEEN :start_date AND :end_date
-        AND (
-            eel.exit_time IS NULL AND DATE(eel.entry_time) < CURDATE()
-            OR eel.entry_method = 'manual'
-            OR eel.exit_method = 'manual'
-        )
-        ORDER BY eel.entry_time DESC
-    ";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute(['start_date' => $start_date, 'end_date' => $end_date]);
-    
-    return [
-        'title' => 'Security Report',
-        'period' => "{$start_date} to {$end_date}",
-        'headers' => [
-            'ID', 'Registration Number', 'First Name', 'Last Name',
-            'Entry Time', 'Exit Time', 'Entry Method', 'Exit Method',
-            'Entry Notes', 'Exit Notes', 'Device', 'Location', 'Security Flag'
-        ],
-        'data' => $stmt->fetchAll(PDO::FETCH_ASSOC)
-    ];
-}
-
-function generateSummaryReport($pdo, $start_date, $end_date, $filters) {
-    // Get summary statistics
-    $stats = [];
-    
-    // Total entries
-    $stmt = $pdo->prepare("
-        SELECT COUNT(*) as count 
-        FROM entry_exit_logs 
-        WHERE DATE(entry_time) BETWEEN :start_date AND :end_date
-    ");
-    $stmt->execute(['start_date' => $start_date, 'end_date' => $end_date]);
-    $stats['total_entries'] = $stmt->fetch()['count'];
-    
-    // Unique students
-    $stmt = $pdo->prepare("
-        SELECT COUNT(DISTINCT student_id) as count 
-        FROM entry_exit_logs 
-        WHERE DATE(entry_time) BETWEEN :start_date AND :end_date
-    ");
-    $stmt->execute(['start_date' => $start_date, 'end_date' => $end_date]);
-    $stats['unique_students'] = $stmt->fetch()['count'];
-    
-    // Average daily entries
-    $stmt = $pdo->prepare("
-        SELECT AVG(daily_count) as avg_entries 
-        FROM (
-            SELECT DATE(entry_time) as date, COUNT(*) as daily_count
-            FROM entry_exit_logs 
-            WHERE DATE(entry_time) BETWEEN :start_date AND :end_date
-            GROUP BY DATE(entry_time)
-        ) as daily_counts
-    ");
-    $stmt->execute(['start_date' => $start_date, 'end_date' => $end_date]);
-    $result = $stmt->fetch();
-    $stats['avg_daily_entries'] = round($result['avg_entries'] ?? 0);
-    
-    // Device usage breakdown
-    $stmt = $pdo->prepare("
-        SELECT d.name, COUNT(eel.id) as usage_count
-        FROM devices d
-        LEFT JOIN entry_exit_logs eel ON d.id = eel.device_id 
-            AND DATE(eel.entry_time) BETWEEN :start_date AND :end_date
-        WHERE d.status = 'active'
-        GROUP BY d.id, d.name
-        ORDER BY usage_count DESC
-    ");
-    $stmt->execute(['start_date' => $start_date, 'end_date' => $end_date]);
-    $stats['device_usage'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    
-    return [
-        'title' => 'Summary Report',
-        'period' => "{$start_date} to {$end_date}",
-        'summary_stats' => $stats,
-        'headers' => ['Metric', 'Value'],
-        'data' => [
-            ['Total Entries', $stats['total_entries']],
-            ['Unique Students', $stats['unique_students']],
-            ['Average Daily Entries', $stats['avg_daily_entries']]
-        ]
-    ];
-}
-
-function outputCSV($report_data) {
-    $output = fopen('php://output', 'w');
-    
-    // Add title and period
-    fputcsv($output, [$report_data['title']]);
-    fputcsv($output, ['Period: ' . $report_data['period']]);
-    fputcsv($output, []); // Empty row
-    
-    // Add headers
-    fputcsv($output, $report_data['headers']);
-    
-    // Add data
-    foreach ($report_data['data'] as $row) {
-        fputcsv($output, array_values($row));
-    }
-    
-    fclose($output);
-}
-
-function outputExcel($report_data) {
-    echo "<table border='1'>";
-    
-    // Add title and period
-    echo "<tr><td colspan='" . count($report_data['headers']) . "'><strong>{$report_data['title']}</strong></td></tr>";
-    echo "<tr><td colspan='" . count($report_data['headers']) . "'>Period: {$report_data['period']}</td></tr>";
-    echo "<tr></tr>"; // Empty row
-    
-    // Add headers
-    echo "<tr>";
-    foreach ($report_data['headers'] as $header) {
-        echo "<th><strong>{$header}</strong></th>";
-    }
-    echo "</tr>";
-    
-    // Add data
-    foreach ($report_data['data'] as $row) {
-        echo "<tr>";
-        foreach ($row as $value) {
-            echo "<td>{$value}</td>";
+    // 3. Each student details on a new page
+    if (!empty($students)) {
+        foreach ($students as $student) {
+            $pdf->AddPage();
+            $pdf->SetFont('helvetica', '', 11);
+            $profile = '<h4 style="text-align:center;">Student Profile</h4>';
+            $profile .= '<table border="0" cellpadding="7" style="width:80%;margin:auto;">'
+                .'<tr><td width="40%"><strong>ID:</strong></td><td width="40%">' . htmlspecialchars($student['id']) . '</td></tr>'
+                .'<tr><td><strong>Registration Number:</strong></td><td>' . htmlspecialchars($student['registration_number']) . '</td></tr>'
+                .'<tr><td><strong>Name:</strong></td><td>' . htmlspecialchars($student['first_name'] . ' ' . $student['last_name']) . '</td></tr>'
+                .'<tr><td><strong>Email:</strong></td><td>' . htmlspecialchars($student['email']) . '</td></tr>'
+                .'<tr><td><strong>Phone:</strong></td><td>' . htmlspecialchars($student['phone']) . '</td></tr>'
+                .'<tr><td><strong>Department:</strong></td><td>' . htmlspecialchars($student['department']) . '</td></tr>'
+                .'<tr><td><strong>Program:</strong></td><td>' . htmlspecialchars($student['program']) . '</td></tr>'
+                .'<tr><td><strong>Year of Study:</strong></td><td>' . htmlspecialchars($student['year_of_study']) . '</td></tr>'
+                .'<tr><td><strong>Gender:</strong></td><td>' . htmlspecialchars($student['gender']) . '</td></tr>'
+                .'<tr><td><strong>Created At:</strong></td><td>' . htmlspecialchars($student['created_at']) . '</td></tr>'
+                .'</table>';
+            $pdf->writeHTML($profile, true, false, true, false, '');
         }
-        echo "</tr>";
     }
-    
-    echo "</table>";
+    $filename = 'student_report_' . date('Y-m-d_H-i-s') . '.pdf';
+    $pdf->Output($filename, 'D');
+    exit;
 }
-
-function outputPDF($report_data, $report_type) {
-    // For now, output as HTML that can be converted to PDF
-    // In a real implementation, you would use a library like TCPDF or FPDF
-    
-    echo "<html><head><title>{$report_data['title']}</title></head><body>";
-    echo "<h1>{$report_data['title']}</h1>";
-    echo "<p><strong>Period:</strong> {$report_data['period']}</p>";
-    echo "<p><strong>Generated:</strong> " . date('Y-m-d H:i:s') . "</p>";
-    
-    if (isset($report_data['summary_stats'])) {
-        echo "<h2>Summary Statistics</h2>";
-        echo "<ul>";
-        echo "<li>Total Entries: {$report_data['summary_stats']['total_entries']}</li>";
-        echo "<li>Unique Students: {$report_data['summary_stats']['unique_students']}</li>";
-        echo "<li>Average Daily Entries: {$report_data['summary_stats']['avg_daily_entries']}</li>";
-        echo "</ul>";
-        
-        if (!empty($report_data['summary_stats']['device_usage'])) {
-            echo "<h3>Device Usage</h3>";
-            echo "<table border='1' style='border-collapse: collapse; width: 100%;'>";
-            echo "<tr><th>Device</th><th>Usage Count</th></tr>";
-            foreach ($report_data['summary_stats']['device_usage'] as $device) {
-                echo "<tr><td>{$device['name']}</td><td>{$device['usage_count']}</td></tr>";
-            }
-            echo "</table>";
-        }
-    } else {
-        echo "<table border='1' style='border-collapse: collapse; width: 100%;'>";
-        echo "<tr>";
-        foreach ($report_data['headers'] as $header) {
-            echo "<th style='padding: 8px; background-color: #f2f2f2;'>{$header}</th>";
-        }
-        echo "</tr>";
-        
-        foreach ($report_data['data'] as $row) {
-            echo "<tr>";
-            foreach ($row as $value) {
-                echo "<td style='padding: 8px;'>{$value}</td>";
-            }
-            echo "</tr>";
-        }
-        echo "</table>";
-    }
-    
-    echo "</body></html>";
-}
-?> 

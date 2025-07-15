@@ -1,198 +1,359 @@
-<?php
-require_once '../includes/header.php';
-require_once '../includes/sidebar.php';
-require_once '../config/config.php';
 
-// Check if user is logged in and is student
-if (!is_logged_in() || get_user_type() !== 'student') {
-    redirect('../login.php');
+
+<?php
+require_once '../config/config.php';
+?>
+<?php
+$conn = new mysqli("localhost", "root", "", "gate_management_system");
+
+// Correct error checking
+if ($conn->connect_error) {
+    die("Error of database Connection: " . $conn->connect_error);
+}
+$user_id=$_SESSION['user_id']; 
+$sql_return="SELECT * FROM computer_lending WHERE lender_id=$user_id AND status='Accepted'";
+$result_return=$conn->query($sql_return);
+if ($result_return->num_rows > 0) {
+  while($row = $result_return->fetch_assoc()) {
+    $borrower_id=$row['borrower_id'];
+    $sql = "SELECT * FROM users WHERE role_id=4 and id=$borrower_id";
+    $result = $conn->query($sql);
+}
 }
 
-$user_id = $_SESSION['user_id'];
-$message = '';
-$message_type = '';
+?>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Lend My Computer</title>
+  <link rel="stylesheet" href="../fontawesome/css/all.min.css" />
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-try {
-    $db = getDB();
-    // Handle return action
-    if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['device_id'])) {
-        $device_id = intval($_POST['device_id']);
-        
-        // Check if device is still borrowed by this student and get device info
-        $device_check = $db->fetch("
-            SELECT d.device_name, d.owner_id, u.first_name as owner_first, u.last_name as owner_last 
-            FROM devices d 
-            JOIN users u ON d.owner_id = u.id 
-            WHERE d.id = ? AND d.user_id = ? AND d.owner_id != ?
-        ", [$device_id, $user_id, $user_id]);
-        
-        if ($device_check) {
-            // Start transaction
-            $db->beginTransaction();
-            
-            try {
-                // Update device to return to owner
-                $db->query("UPDATE devices SET user_id = owner_id WHERE id = ? AND user_id = ? AND owner_id != ?", 
-                    [$device_id, $user_id, $user_id]);
-                
-                // Update loan history to mark as returned
-                $db->query("
-                    UPDATE loan_history 
-                    SET status = 'returned', return_date = CURRENT_TIMESTAMP, notes = CONCAT(notes, ' - Returned on ', NOW())
-                    WHERE device_id = ? AND borrower_id = ? AND status = 'borrowed'
-                    ORDER BY loan_date DESC LIMIT 1
-                ", [$device_id, $user_id]);
-                
-                $db->commit();
-                $message = 'Device "' . $device_check['device_name'] . '" successfully returned to ' . 
-                          $device_check['owner_first'] . ' ' . $device_check['owner_last'] . '!';
-                $message_type = 'success';
-                
-            } catch (Exception $e) {
-                $db->rollback();
-                throw $e;
-            }
-        } else {
-            $message = 'Device is no longer in your possession.';
-            $message_type = 'warning';
-        }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+    }
+
+    .header {
+      background-color: #2196F3;
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+
+    .header-info {
+      font-size: 0.9rem;
+    }
+
+    .user-info {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background-color: #1976D2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      color: white;
+    }
+
+    .logout-btn {
+      background-color: #f44336;
+      color: white;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background-color 0.3s;
+    }
+
+    .logout-btn:hover {
+      background-color: #d32f2f;
+    }
+
+    .container {
+      display: flex;
+      min-height: calc(100vh - 80px);
+    }
+
+    .sidebar {
+      width: 250px;
+      background-color: white;
+      box-shadow: 2px 0 4px rgba(0,0,0,0.1);
+      padding: 1rem 0;
+    }
+
+    .sidebar-section {
+      margin-bottom: 2rem;
+    }
+
+    .sidebar-title {
+      color: #666;
+      font-size: 0.8rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-bottom: 1rem;
+      padding: 0 1rem;
+    }
+
+    .sidebar-item {
+      display: flex;
+      align-items: center;
+      padding: 0.75rem 1rem;
+      color: #333;
+      text-decoration: none;
+      transition: background-color 0.3s;
+      cursor: pointer;
+      border-left: 3px solid transparent;
+    }
+
+    .sidebar-item:hover {
+      background-color: #f5f5f5;
+    }
+
+    .sidebar-item.active {
+      background-color: #e3f2fd;
+      color: #2196F3;
+      border-left-color: #2196F3;
+    }
+
+    .sidebar-item i {
+      margin-right: 0.75rem;
+      font-size: 1.1rem;
+    }
+
+    .main-content {
+      flex: 1;
+      padding: 2rem;
+      background-color: #f5f5f5;
+      margin-bottom: 80px; /* Add bottom margin for fixed footer */
     }
     
-    // Fetch devices currently borrowed by the student
-    $devices = $db->fetchAll("
-        SELECT d.id, d.device_name, d.device_type, d.brand, d.model, d.color, d.description,
-               u.first_name AS owner_first, u.last_name AS owner_last, u.email AS owner_email,
-               u.username AS owner_username,
-               lh.loan_date
-        FROM devices d 
-        JOIN users u ON d.owner_id = u.id 
-        LEFT JOIN loan_history lh ON d.id = lh.device_id AND lh.borrower_id = ? AND lh.status = 'borrowed'
-        WHERE d.user_id = ? AND d.owner_id != ?
-        ORDER BY d.device_name
-    ", [$user_id, $user_id, $user_id]);
-    
-} catch (Exception $e) {
-    $message = 'Error: ' . $e->getMessage();
-    $message_type = 'danger';
-}
-?>
-<main class="main-content">
-    <div class="content-wrapper">
-        <div class="page-header">
-            <div class="page-title">
-                <i class="fas fa-arrow-circle-left"></i> Return a Computer
-            </div>
-            <div class="page-subtitle">Return borrowed computers to their student owners</div>
-        </div>
-        
-        <?php if ($message): ?>
-            <div class="alert alert-<?php echo $message_type; ?> alert-dismissible fade show">
-                <i class="fas fa-<?php echo $message_type === 'success' ? 'check-circle' : ($message_type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'); ?>"></i>
-                <?php echo htmlspecialchars($message); ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        
-        <?php if (!empty($devices)): ?>
-            <div class="card">
-                <div class="card-header">
-                    <h3><i class="fas fa-laptop-house"></i> My Borrowed Computers</h3>
-                    <p class="text-muted mb-0">Click "Return" to give the computer back to its student owner</p>
-                </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-striped table-hover">
-                            <thead class="table-dark">
-                                <tr>
-                                    <th><i class="fas fa-laptop"></i> Device Name</th>
-                                    <th><i class="fas fa-tag"></i> Type</th>
-                                    <th><i class="fas fa-info-circle"></i> Brand/Model</th>
-                                    <th><i class="fas fa-user"></i> Owner (Student)</th>
-                                    <th><i class="fas fa-calendar"></i> Borrowed Date</th>
-                                    <th><i class="fas fa-cogs"></i> Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($devices as $device): ?>
-                                <tr>
-                                    <td>
-                                        <strong><?php echo htmlspecialchars($device['device_name']); ?></strong>
-                                        <?php if ($device['color']): ?>
-                                            <br><small class="text-muted"><?php echo htmlspecialchars($device['color']); ?></small>
-                                        <?php endif; ?>
-                                        <?php if ($device['description']): ?>
-                                            <br><small class="text-muted"><?php echo htmlspecialchars(substr($device['description'], 0, 50)) . (strlen($device['description']) > 50 ? '...' : ''); ?></small>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <span class="badge bg-info"><?php echo ucfirst(htmlspecialchars($device['device_type'])); ?></span>
-                                    </td>
-                                    <td>
-                                        <?php if ($device['brand'] || $device['model']): ?>
-                                            <strong><?php echo htmlspecialchars($device['brand'] ?? ''); ?></strong>
-                                            <?php if ($device['brand'] && $device['model']): ?> / <?php endif; ?>
-                                            <?php echo htmlspecialchars($device['model'] ?? ''); ?>
-                                        <?php else: ?>
-                                            <span class="text-muted">Not specified</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <div>
-                                            <strong><?php echo htmlspecialchars($device['owner_first'] . ' ' . $device['owner_last']); ?></strong>
-                                            <br><small class="text-muted">@<?php echo htmlspecialchars($device['owner_username']); ?></small>
-                                            <?php if ($device['owner_email']): ?>
-                                                <br><small class="text-muted"><?php echo htmlspecialchars($device['owner_email']); ?></small>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <?php if ($device['loan_date']): ?>
-                                            <small class="text-muted">
-                                                <?php echo date('M j, Y', strtotime($device['loan_date'])); ?>
-                                                <br><?php echo date('g:i A', strtotime($device['loan_date'])); ?>
-                                            </small>
-                                        <?php else: ?>
-                                            <span class="text-muted">Unknown</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <form method="post" style="display: inline;" onsubmit="return confirm('Are you sure you want to return this computer to <?php echo htmlspecialchars($device['owner_first'] . ' ' . $device['owner_last']); ?>?')">
-                                            <button type="submit" name="device_id" value="<?php echo $device['id']; ?>" class="btn btn-warning btn-sm">
-                                                <i class="fas fa-undo"></i> Return
-                                            </button>
-                                        </form>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        <?php else: ?>
-            <div class="card">
-                <div class="card-body text-center">
-                    <i class="fas fa-laptop-house" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
-                    <h4>No Borrowed Computers</h4>
-                    <p class="text-muted">You have not borrowed any computers at this time.</p>
-                    <a href="lend_computer.php" class="btn btn-primary">
-                        <i class="fas fa-arrow-circle-right"></i> Borrow a Computer
-                    </a>
-                </div>
-            </div>
-        <?php endif; ?>
+    .footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      padding: 1rem 2rem;
+      text-align: center;
+      color: #7f8c8d;
+      border-top: 1px solid rgba(0, 0, 0, 0.1);
+      z-index: 1000;
+      font-size: 0.9rem;
+      font-weight: 500;
+    }
+
+    .form-container {
+      background-color: white;
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+      max-width: 600px;
+      margin: auto;
+    }
+
+    h2 {
+      margin-bottom: 1.5rem;
+      text-align: center;
+      color: #2196F3;
+    }
+
+    .form-group {
+      margin-bottom: 1rem;
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-weight: 600;
+      color: #333;
+    }
+
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+      width: 100%;
+      padding: 0.75rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 1rem;
+    }
+
+    .form-group input:focus,
+    .form-group select:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #2196F3;
+      box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+    }
+
+    .btn {
+      background-color: #2196F3;
+      color: white;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      transition: background-color 0.3s;
+      width: 100%;
+      margin-top: 1rem;
+    }
+
+    .btn:hover {
+      background-color: #1976D2;
+    }
+
+    .back-link {
+      display: block;
+      text-align: center;
+      margin-top: 1rem;
+      text-decoration: none;
+      color: #2196F3;
+      font-weight: 500;
+    }
+
+    .back-link:hover {
+      text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+      .sidebar {
+        width: 100%;
+        position: fixed;
+        left: -100%;
+        top: 80px;
+        height: calc(100vh - 80px);
+        z-index: 999;
+        transition: left 0.3s;
+      }
+
+      .sidebar.open {
+        left: 0;
+      }
+
+      .main-content {
+        padding: 1rem;
+      }
+
+      .form-container {
+        margin: 0 auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <h1>🏫 Gate Management System</h1>
+      <div class="header-info">UR College of Education, Rukara Campus</div>
     </div>
-</main>
+    <div class="user-info">
+      <div class="user-avatar">N</div>
+      <div>
+        <div><?php echo $_SESSION['first_name']; ?></div>
+        <div style="font-size: 0.8rem; opacity: 0.9;">(Student)</div>
+      </div>
+      <form action="/Capstone_project/logout.php" method="post">
+                  <button type="submit" class="btn btn-danger">Logout</button>
+              </form>
+    </div>
+  </div>
 
-<script>
-// Auto-hide alerts after 5 seconds
-setTimeout(function() {
-    var alerts = document.querySelectorAll('.alert');
-    alerts.forEach(function(alert) {
-        var bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-    });
-}, 5000);
-</script>
+  <div class="container">
+    <nav class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-title">Student Portal</div>
+        <a class="sidebar-item" href="/Capstone_project/pages/dashboard_student.php">
+          <i class="fas fa-tachometer-alt"></i>
+          Dashboard
+        </a>
+        <a class="sidebar-item" href="/Capstone_project/pages/lend_computer.php">
+          <i class="fas fa-share-alt"></i>
+          Lend My Computer
+        </a>
+        <a class="sidebar-item active" href="/Capstone_project/pages/return_computer.php">
+          <i class="fas fa-undo"></i>
+          Return My Computer
+        </a>
+        
+         <a class="sidebar-item " href="/Capstone_project/pages/Approve.php">
+          <i class="fas fa-laptop-house"></i>
+          Approve
+        </a>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-title">Account</div>
+        <a class="sidebar-item" href="/Capstone_project/pages/profile.php">
+          <i class="fas fa-user"></i>
+          Profile
+        </a>
+      </div>
+    </nav>
 
-<?php require_once '../includes/footer.php'; ?> 
+    <main class="main-content">
+      <div class="form-container">
+        <h2>Return Computer</h2>
+        <form id="lendForm" action="submit_return.php" method="POST">
+          <div class="form-group">
+            <label for="deviceSelect">Select Reg Number:</label>
+            <select id="deviceSelect" name="reg_number" required>
+              <option value="">Choose a Reg Number...</option>
+              <?php 
+              // Check if there are results
+              if ($result && $result->num_rows > 0) {
+                  // Fetch and display each registration number
+                  while($row = $result->fetch_assoc()) {
+                      echo '<option value="' . htmlspecialchars($row['id']) . '">' . 
+                           htmlspecialchars($row['username']) . '. ' . htmlspecialchars($row['last_name']) . '</option>';
+                  }
+              } else {
+                  echo '<option value="">No registration numbers found</option>';
+              }
+              ?>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="lendNotes">Additional Notes:</label>
+            <textarea id="lendNotes" name="notes" rows="3" placeholder="Any special instructions or notes..."></textarea>
+          </div>
+
+          <button type="submit" class="btn">Return Computer</button>
+        </form>
+        <a href="dashboard_student.php" class="back-link">← Back to Dashboard</a>
+      </div>
+    </main>
+  </div>
+  
+  <footer class="footer">
+    &copy; <?php echo date('Y'); ?> Gate Management System - UR College of Education, Rukara Campus
+  </footer>
+</body>
+</html>

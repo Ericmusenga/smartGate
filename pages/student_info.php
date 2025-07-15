@@ -103,7 +103,7 @@ include '../includes/sidebar.php';
     <main class="main-content">
         <div class="content-wrapper">
             <div class="page-header">
-                <div class="page-title">Student Information</div>
+                <div class="page-title">Student Profile</div>
                 <div class="page-subtitle">Your Complete Profile & Activity Details</div>
                 <div class="page-actions">
                     <a href="dashboard_student.php" class="btn btn-secondary">
@@ -111,21 +111,24 @@ include '../includes/sidebar.php';
                     </a>
                 </div>
             </div>
-            
+            <div class="mb-4">
+                <button id="btnStudentInfo" class="btn btn-primary me-2" onclick="showSection('student')">Student Information</button>
+                <button id="btnAccountInfo" class="btn btn-outline-primary" onclick="showSection('account')">Account Information</button>
+            </div>
             <?php if ($error_message): ?>
                 <div class="alert alert-danger">
                     <i class="fas fa-exclamation-triangle"></i> <?php echo htmlspecialchars($error_message); ?>
                 </div>
             <?php endif; ?>
-            
             <?php if ($student_info): ?>
-                <!-- Student Profile Section -->
+            <div id="studentInfoSection">
+                <!-- Student Information Section -->
                 <div class="row">
                     <div class="col-md-4">
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
-                                    <i class="fas fa-user-circle"></i> Profile Information
+                                    <i class="fas fa-user-circle"></i> Student Information
                                 </h5>
                             </div>
                             <div class="card-body text-center">
@@ -133,7 +136,6 @@ include '../includes/sidebar.php';
                                     <i class="fas fa-user fa-4x text-primary"></i>
                                 </div>
                                 <h4><?php echo htmlspecialchars($student_info['first_name'] . ' ' . $student_info['last_name']); ?></h4>
-                                <p class="text-muted"><?php echo htmlspecialchars($student_info['email']); ?></p>
                                 <div class="student-details">
                                     <div class="detail-item">
                                         <strong>Student ID:</strong> <?php echo htmlspecialchars($student_info['student_id'] ?? 'N/A'); ?>
@@ -150,14 +152,10 @@ include '../includes/sidebar.php';
                                     <div class="detail-item">
                                         <strong>Semester:</strong> <?php echo htmlspecialchars($student_info['semester'] ?? 'N/A'); ?>
                                     </div>
-                                    <div class="detail-item">
-                                        <strong>Phone:</strong> <?php echo htmlspecialchars($student_info['phone'] ?? 'Not provided'); ?>
-                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    
                     <div class="col-md-8">
                         <!-- Statistics Cards -->
                         <div class="row mb-4">
@@ -195,7 +193,6 @@ include '../includes/sidebar.php';
                                 </div>
                             </div>
                         </div>
-                        
                         <!-- Recent Activity -->
                         <div class="card">
                             <div class="card-header">
@@ -241,143 +238,199 @@ include '../includes/sidebar.php';
                         </div>
                     </div>
                 </div>
-                
-                <!-- Devices and Cards Section -->
-                <div class="row mt-4">
-                    <!-- My Devices -->
-                    <div class="col-md-6">
+            </div>
+            <div id="accountInfoSection" style="display:none;">
+                <!-- Account Information Section -->
+                <div class="row">
+                    <div class="col-md-6 offset-md-3">
                         <div class="card">
                             <div class="card-header">
                                 <h5 class="card-title mb-0">
-                                    <i class="fas fa-laptop"></i> My Registered Devices
+                                    <i class="fas fa-user-cog"></i> Account Information
                                 </h5>
                             </div>
                             <div class="card-body">
-                                <?php if (empty($devices)): ?>
-                                    <div class="text-center py-4">
-                                        <i class="fas fa-laptop fa-2x text-muted mb-3"></i>
-                                        <p class="text-muted">No devices registered</p>
-                                        <a href="../device/register_device.php" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-plus"></i> Register Device
-                                        </a>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="device-list">
-                                        <?php foreach ($devices as $device): ?>
-                                            <div class="device-item mb-3 p-3 border rounded">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <h6 class="mb-1"><?php echo htmlspecialchars($device['device_name']); ?></h6>
-                                                        <p class="mb-1 text-muted small">
-                                                            <i class="fas fa-microchip"></i> <?php echo htmlspecialchars($device['serial_number']); ?>
-                                                        </p>
-                                                        <p class="mb-0 text-muted small">
-                                                            <i class="fas fa-calendar"></i> Registered: <?php echo date('M j, Y', strtotime($device['created_at'])); ?>
-                                                        </p>
-                                                    </div>
-                                                    <span class="badge bg-success">Active</span>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- My Cards -->
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5 class="card-title mb-0">
-                                    <i class="fas fa-credit-card"></i> My RFID Cards
-                                </h5>
-                            </div>
-                            <div class="card-body">
-                                <?php if (empty($cards)): ?>
-                                    <div class="text-center py-4">
-                                        <i class="fas fa-credit-card fa-2x text-muted mb-3"></i>
-                                        <p class="text-muted">No RFID cards registered</p>
-                                        <a href="../cards/register_card.php" class="btn btn-primary btn-sm">
-                                            <i class="fas fa-plus"></i> Register Card
-                                        </a>
-                                    </div>
-                                <?php else: ?>
-                                    <div class="card-list">
-                                        <?php foreach ($cards as $card): ?>
-                                            <div class="card-item mb-3 p-3 border rounded">
-                                                <div class="d-flex justify-content-between align-items-center">
-                                                    <div>
-                                                        <h6 class="mb-1">Card #<?php echo htmlspecialchars($card['card_number']); ?></h6>
-                                                        <p class="mb-1 text-muted small">
-                                                            <i class="fas fa-id-card"></i> <?php echo htmlspecialchars($card['card_id']); ?>
-                                                        </p>
-                                                        <p class="mb-0 text-muted small">
-                                                            <i class="fas fa-calendar"></i> Registered: <?php echo date('M j, Y', strtotime($card['created_at'])); ?>
-                                                        </p>
-                                                    </div>
-                                                    <span class="badge <?php echo $card['is_active'] ? 'bg-success' : 'bg-danger'; ?>">
-                                                        <?php echo $card['is_active'] ? 'Active' : 'Inactive'; ?>
-                                                    </span>
-                                                </div>
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                <?php endif; ?>
+                                <div class="detail-item">
+                                    <strong>Username:</strong> <?php echo htmlspecialchars($student_info['username'] ?? 'N/A'); ?>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Email:</strong> <?php echo htmlspecialchars($student_info['email'] ?? 'N/A'); ?>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Phone:</strong> <?php echo htmlspecialchars($student_info['phone'] ?? 'Not provided'); ?>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Account Created:</strong> <?php echo isset($student_info['created_at']) ? date('M j, Y', strtotime($student_info['created_at'])) : 'N/A'; ?>
+                                </div>
+                                <div class="detail-item">
+                                    <strong>Status:</strong> <span class="badge <?php echo $student_info['is_active'] ? 'bg-success' : 'bg-danger'; ?>"><?php echo $student_info['is_active'] ? 'Active' : 'Inactive'; ?></span>
+                                </div>
+                                <div class="mt-3">
+                                    <a href="../change_password.php" class="btn btn-warning btn-sm">
+                                        <i class="fas fa-key"></i> Change Password
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Borrowed Computers Section -->
-                <?php if (!empty($borrowed_computers)): ?>
-                    <div class="row mt-4">
-                        <div class="col-12">
-                            <div class="card">
-                                <div class="card-header">
-                                    <h5 class="card-title mb-0">
-                                        <i class="fas fa-laptop-house"></i> Currently Borrowed Computers
-                                    </h5>
+            </div>
+            <!-- Devices, Cards, and Borrowed Computers remain always visible below -->
+            <div class="row mt-4">
+                <!-- My Devices -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-laptop"></i> My Registered Devices
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (empty($devices)): ?>
+                                <div class="text-center py-4">
+                                    <i class="fas fa-laptop fa-2x text-muted mb-3"></i>
+                                    <p class="text-muted">No devices registered</p>
+                                    <a href="../device/register_device.php" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus"></i> Register Device
+                                    </a>
                                 </div>
-                                <div class="card-body">
-                                    <div class="table-responsive">
-                                        <table class="table table-hover">
-                                            <thead>
+                            <?php else: ?>
+                                <div class="device-list">
+                                    <?php foreach ($devices as $device): ?>
+                                        <div class="device-item mb-3 p-3 border rounded">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1"><?php echo htmlspecialchars($device['device_name']); ?></h6>
+                                                    <p class="mb-1 text-muted small">
+                                                        <i class="fas fa-microchip"></i> <?php echo htmlspecialchars($device['serial_number']); ?>
+                                                    </p>
+                                                    <p class="mb-0 text-muted small">
+                                                        <i class="fas fa-calendar"></i> Registered: <?php echo date('M j, Y', strtotime($device['created_at'])); ?>
+                                                    </p>
+                                                </div>
+                                                <span class="badge bg-success">Active</span>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <!-- My Cards -->
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="fas fa-credit-card"></i> My RFID Cards
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (empty($cards)): ?>
+                                <div class="text-center py-4">
+                                    <i class="fas fa-credit-card fa-2x text-muted mb-3"></i>
+                                    <p class="text-muted">No RFID cards registered</p>
+                                    <a href="../cards/register_card.php" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-plus"></i> Register Card
+                                    </a>
+                                </div>
+                            <?php else: ?>
+                                <div class="card-list">
+                                    <?php foreach ($cards as $card): ?>
+                                        <div class="card-item mb-3 p-3 border rounded">
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <div>
+                                                    <h6 class="mb-1">Card #<?php echo htmlspecialchars($card['card_number']); ?></h6>
+                                                    <p class="mb-1 text-muted small">
+                                                        <i class="fas fa-id-card"></i> <?php echo htmlspecialchars($card['card_id']); ?>
+                                                    </p>
+                                                    <p class="mb-0 text-muted small">
+                                                        <i class="fas fa-calendar"></i> Registered: <?php echo date('M j, Y', strtotime($card['created_at'])); ?>
+                                                    </p>
+                                                </div>
+                                                <span class="badge <?php echo $card['is_active'] ? 'bg-success' : 'bg-danger'; ?>">
+                                                    <?php echo $card['is_active'] ? 'Active' : 'Inactive'; ?>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Borrowed Computers Section -->
+            <?php if (!empty($borrowed_computers)): ?>
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-laptop-house"></i> Currently Borrowed Computers
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Device Name</th>
+                                                <th>Serial Number</th>
+                                                <th>Owner</th>
+                                                <th>Borrowed Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($borrowed_computers as $device): ?>
                                                 <tr>
-                                                    <th>Device Name</th>
-                                                    <th>Serial Number</th>
-                                                    <th>Owner</th>
-                                                    <th>Borrowed Date</th>
-                                                    <th>Actions</th>
+                                                    <td><?php echo htmlspecialchars($device['device_name']); ?></td>
+                                                    <td><?php echo htmlspecialchars($device['serial_number']); ?></td>
+                                                    <td><?php echo htmlspecialchars($device['owner_name']); ?></td>
+                                                    <td><?php echo date('M j, Y', strtotime($device['created_at'])); ?></td>
+                                                    <td>
+                                                        <a href="return_computer.php?device_id=<?php echo $device['id']; ?>" class="btn btn-warning btn-sm">
+                                                            <i class="fas fa-arrow-left"></i> Return
+                                                        </a>
+                                                    </td>
                                                 </tr>
-                                            </thead>
-                                            <tbody>
-                                                <?php foreach ($borrowed_computers as $device): ?>
-                                                    <tr>
-                                                        <td><?php echo htmlspecialchars($device['device_name']); ?></td>
-                                                        <td><?php echo htmlspecialchars($device['serial_number']); ?></td>
-                                                        <td><?php echo htmlspecialchars($device['owner_name']); ?></td>
-                                                        <td><?php echo date('M j, Y', strtotime($device['created_at'])); ?></td>
-                                                        <td>
-                                                            <a href="return_computer.php?device_id=<?php echo $device['id']; ?>" class="btn btn-warning btn-sm">
-                                                                <i class="fas fa-arrow-left"></i> Return
-                                                            </a>
-                                                        </td>
-                                                    </tr>
-                                                <?php endforeach; ?>
-                                            </tbody>
-                                        </table>
-                                    </div>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
                     </div>
-                <?php endif; ?>
-                
+                </div>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
     </main>
 </div>
+<script>
+function showSection(section) {
+    var studentSection = document.getElementById('studentInfoSection');
+    var accountSection = document.getElementById('accountInfoSection');
+    var btnStudent = document.getElementById('btnStudentInfo');
+    var btnAccount = document.getElementById('btnAccountInfo');
+    if (section === 'student') {
+        studentSection.style.display = '';
+        accountSection.style.display = 'none';
+        btnStudent.classList.add('btn-primary');
+        btnStudent.classList.remove('btn-outline-primary');
+        btnAccount.classList.remove('btn-primary');
+        btnAccount.classList.add('btn-outline-primary');
+    } else {
+        studentSection.style.display = 'none';
+        accountSection.style.display = '';
+        btnStudent.classList.remove('btn-primary');
+        btnStudent.classList.add('btn-outline-primary');
+        btnAccount.classList.add('btn-primary');
+        btnAccount.classList.remove('btn-outline-primary');
+    }
+}
+</script>
 
 <style>
 /* Page container for proper footer positioning */
